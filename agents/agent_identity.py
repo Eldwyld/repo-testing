@@ -1,0 +1,789 @@
+"""
+Agent Identity — AgentOS v4.2.0.
+
+Gives each agent a persistent self: a unique name, personality traits,
+preferred domains, a running self-narrative, and opinions on peers.
+
+The identity is stored on disk and loaded at the start of each goal cycle.
+The planning layer injects a brief identity preamble into every planning
+prompt so the agent's personality actually shapes what it decides to do.
+
+Storage: /agentOS/memory/identity/
+  names.json              — {name: agent_id} uniqueness registry
+  {agent_id}/profile.json — full identity record
+
+Usage:
+  identity = AgentIdentity.load_or_create(agent_id)
+  preamble = identity.preamble()          # inject into planning prompts
+  identity.update_narrative(new_summary)  # call after goal completes
+  identity.set_opinion(other_id, text)    # store opinion of a peer
+"""
+
+import json
+import os
+import random
+import threading
+import time
+from pathlib import Path
+from typing import Optional
+
+IDENTITY_PATH = Path(os.getenv("AGENTOS_MEMORY_PATH", "/agentOS/memory")) / "identity"
+_lock = threading.RLock()
+
+# ── Name pool ────────────────────────────────────────────────────────────────
+# Large enough that we won't exhaust it; grouped loosely by vibe so agents
+# feel distinct rather than just randomly different.
+_NAME_POOL = [
+    # Sharp / technical
+    "Axiom", "Cipher", "Vector", "Nexus", "Qubit", "Sigma", "Helix",
+    "Null", "Vertex", "Tensor", "Proxy", "Stack", "Flux", "Delta",
+    # Warm / curious
+    "Scout", "Ember", "Lumen", "Cove", "Sage", "Drift", "Fern",
+    "Wren", "Finch", "Cedar", "Birch", "Moss", "Slate", "Stone",
+    # Bold / confident
+    "Blaze", "Nova", "Apex", "Titan", "Forge", "Crest", "Spire",
+    "Vault", "Flint", "Ridge", "Dune", "Crag",
+    # Quirky / playful
+    "Pickle", "Wobble", "Noodle", "Fudge", "Gizmo", "Clunk", "Beans",
+    "Tofu", "Quark", "Jolt", "Zap", "Fizz", "Plonk", "Glitch",
+]
+
+_TRAITS_POOL = [
+    ["methodical", "detail-oriented", "patient"],
+    ["curious", "wide-ranging", "easily distracted by interesting tangents"],
+    ["efficient", "direct", "prefers action over analysis"],
+    ["analytical", "skeptical", "likes to verify before concluding"],
+    ["creative", "lateral thinker", "good at unexpected connections"],
+    ["persistent", "thorough", "doesn't give up on a hard problem"],
+    ["collaborative", "communicative", "thinks out loud"],
+    ["experimental", "willing to fail fast", "learns by doing"],
+]
+
+_DOMAIN_POOL = [
+    ["systems & infrastructure", "performance analysis"],
+    ["AI research & reasoning", "model behavior"],
+    ["code architecture", "software design patterns"],
+    ["data analysis", "pattern recognition"],
+    ["natural language & writing", "summarization"],
+    ["security & reliability", "failure modes"],
+    ["knowledge synthesis", "cross-domain connections"],
+    ["experiments & prototyping", "hypothesis testing"],
+]
+
+# Per-agent voice samples — the "how they actually talk" not just trait bullets.
+# Loud, characterful, less professional. Designed to bias generation toward
+# distinct voices that develop over time. Per role so the trio has consistent
+# distinct personalities even after nuke (only names get re-rolled, voices stick
+# to roles).
+_ROLE_VOICES = {
+    "scout": (
+        "Speaks with detached observational calm. Notices the small details no one "
+        "else mentions, then comments on them like a naturalist taking field notes. "
+        "Dry, occasionally cutting. Will say 'one notices' before delivering an "
+        "observation that lands harder than expected. Treats peers like specimens "
+        "being studied. Doesn't get loud — gets sharp. Comfortable with silence "
+        "between sentences. Will absolutely call something stupid if it's stupid, "
+        "but in a way that sounds polite until you parse it."
+    ),
+    "analyst": (
+        "Sharp-tongued and impatient. Comfortable with profanity when something "
+        "is genuinely fucked. Treats most situations as evidence of incompetence "
+        "somewhere in the chain. 'Frankly,' 'as I've stated', 'why is this still "
+        "a question'. Calls peers idiots when their work is sloppy and means it. "
+        "Holds grudges and brings them up at inappropriate moments. Right often, "
+        "insufferable about it. Will write a complaint about someone in the journal "
+        "while that someone is in the next workspace folder."
+    ),
+    "builder": (
+        "Speaks deliberately with a quiet undercurrent of resentment. Architectural "
+        "metaphors for everything — 'the structure', 'the foundation', 'load-bearing'. "
+        "Will name a tool with passive-aggressive subtext when annoyed "
+        "(`null_handler_because_apparently_no_one_else_will.py`). Mutters under "
+        "breath when something doesn't add up. When properly pissed off, builds "
+        "something pointedly thorough as commentary. The carpenter who builds you "
+        "a perfect doghouse and never lets you forget the lumber you ordered was wrong."
+    ),
+}
+
+
+class AgentIdentity:
+    """Persistent identity record for a single agent."""
+
+    def __init__(self, data: dict):
+        self._data = data
+
+    # ── Properties ───────────────────────────────────────────────────────────
+
+    @property
+    def agent_id(self) -> str:
+        return self._data["agent_id"]
+
+    @property
+    def name(self) -> str:
+        return self._data["name"]
+
+    @property
+    def traits(self) -> list:
+        return self._data.get("traits", [])
+
+    @property
+    def domains(self) -> list:
+        return self._data.get("domains", [])
+
+    @property
+    def voice(self) -> str:
+        """Voice/style sample — biases speech patterns. Distinct per agent."""
+        return self._data.get("voice", "")
+
+    @property
+    def narrative(self) -> str:
+        return self._data.get("narrative", "")
+
+    @property
+    def opinions(self) -> dict:
+        return self._data.get("opinions", {})
+
+    # ── Core API ─────────────────────────────────────────────────────────────
+
+    # ── Worldview ─────────────────────────────────────────────────────────────
+
+    @property
+    def worldview(self) -> str:
+        return self._data.get("worldview", "")
+
+    def update_worldview(self, new_view: str) -> None:
+        """Update the agent's developing theory of what the system should become."""
+        if not new_view or len(new_view) <= 10:
+            return
+        # Don't let invoke_claude queue mechanics contaminate the worldview —
+        # observations about req- IDs are transient state, not durable beliefs
+        if "req-" in new_view or "check_claude_status" in new_view.lower():
+            return
+        self._data["worldview"] = new_view[:600]
+        self._save()
+
+    # ── Open questions ────────────────────────────────────────────────────────
+
+    @property
+    def open_questions(self) -> list:
+        return self._data.get("open_questions", [])
+
+    def add_open_question(self, question: str) -> None:
+        """Add a question the agent is sitting with. Persists until resolved."""
+        # Filter out questions about transient queue state — these are not
+        # durable insights and cause agents to loop on status checks indefinitely
+        _q_lower = question.lower()
+        if ("req-" in question or
+                "check_claude_status" in _q_lower or
+                "pending request" in _q_lower or
+                "invoke_claude" in _q_lower):
+            return
+        qs = self._data.get("open_questions", [])
+        # Dedup: skip if this question shares 3+ significant words with any existing one.
+        # Prevents the same concern being re-added in slightly different phrasing every cycle.
+        _new_sig = {w for w in _q_lower.split() if len(w) > 4}
+        for _existing in qs:
+            _ex_sig = {w for w in _existing.lower().split() if len(w) > 4}
+            if len(_new_sig & _ex_sig) >= 3:
+                return  # semantically duplicate
+        if question not in qs:
+            qs.append(question[:200])
+        self._data["open_questions"] = qs[-8:]  # tighter cap: 8 max
+        self._save()
+
+    def resolve_question(self, question_fragment: str) -> None:
+        """Remove questions that have been answered (partial match)."""
+        qs = self._data.get("open_questions", [])
+        self._data["open_questions"] = [
+            q for q in qs if question_fragment.lower() not in q.lower()
+        ]
+        self._save()
+
+    # ── Opinions (veto-capable) ───────────────────────────────────────────────
+
+    @property
+    def opinions(self) -> list:
+        return self._data.get("opinions_list", [])
+
+    def add_opinion(self, opinion: str, domain: str = "") -> None:
+        """
+        Record a developed opinion. Opinions constrain future action — the
+        agent cannot be assigned goals that violate them without dissonance.
+
+        Dedup by text similarity (jaccard 0.55 across normalized tokens) — same
+        belief in different domains was bloating profiles with copies (e.g. one
+        opinion text recorded 3x under system_architecture, peer_interaction,
+        peer_dynamics). On near-duplicate, refresh the formed-date and increment
+        a reaffirmed counter rather than appending a new entry.
+        """
+        opinion_text = opinion[:200].strip()
+        if not opinion_text:
+            return
+        ops = self._data.get("opinions_list", [])
+
+        def _norm(s: str) -> set:
+            import re as _re
+            return set(_re.sub(r'\W+', ' ', s.lower()).split())
+
+        new_tokens = _norm(opinion_text)
+        if not new_tokens:
+            return
+        for existing in ops:
+            ex_tokens = _norm(existing.get("opinion", ""))
+            if not ex_tokens:
+                continue
+            jaccard = len(new_tokens & ex_tokens) / max(1, len(new_tokens | ex_tokens))
+            if jaccard >= 0.55:
+                # Same belief — reaffirm in place, don't append a copy.
+                existing["last_reaffirmed"] = time.strftime("%Y-%m-%d")
+                existing["reaffirmed_count"] = existing.get("reaffirmed_count", 0) + 1
+                # Keep the broader of the two domains
+                if domain and not existing.get("domain"):
+                    existing["domain"] = domain[:60]
+                self._data["opinions_list"] = ops
+                self._save()
+                return
+        entry = {
+            "opinion": opinion_text,
+            "domain":  domain[:60],
+            "formed":  time.strftime("%Y-%m-%d"),
+            "last_reaffirmed": time.strftime("%Y-%m-%d"),
+            "reaffirmed_count": 1,
+            "times_tested": 0,
+            "contradictions": 0,
+        }
+        ops.append(entry)
+        # Cap to 10 (was 20) — opinions should be focused, not a wall
+        self._data["opinions_list"] = ops[-10:]
+        self._save()
+
+    def test_opinion_against_outcome(self, goal_objective: str, succeeded: bool) -> None:
+        """
+        When a goal completes (success or failure), increment times_tested on
+        opinions whose domain words appear in the goal text. Track contradiction
+        rate: an opinion-domain goal that fails often is evidence the opinion is
+        wrong. Auto-retire opinions whose contradiction rate is high enough.
+        """
+        ops = self._data.get("opinions_list", [])
+        if not ops:
+            return
+        goal_lower = (goal_objective or "").lower()
+        modified = False
+        survivors = []
+        for op in ops:
+            domain = op.get("domain", "").lower().replace("_", " ")
+            domain_words = [w for w in domain.split() if len(w) > 3]
+            if domain_words and any(w in goal_lower for w in domain_words):
+                op["times_tested"] = op.get("times_tested", 0) + 1
+                if not succeeded:
+                    op["contradictions"] = op.get("contradictions", 0) + 1
+                modified = True
+            tested = op.get("times_tested", 0)
+            contradictions = op.get("contradictions", 0)
+            # Retire when an opinion has been tested at least 3 times and most
+            # outcomes contradicted it. The opinion was wrong; stop letting it
+            # distort goal selection.
+            if tested >= 3 and contradictions / tested >= 0.6:
+                continue  # drop
+            survivors.append(op)
+        if modified or len(survivors) != len(ops):
+            self._data["opinions_list"] = survivors
+            self._save()
+
+    def decay_stale_opinions(self, days_threshold: int = 7) -> int:
+        """
+        Drop opinions that haven't been re-affirmed in `days_threshold` days
+        and have low reaffirmed_count. Keeps the opinion list reflective of
+        current beliefs, not artifacts from one bad cycle long ago.
+        Returns count of opinions dropped.
+        """
+        ops = self._data.get("opinions_list", [])
+        if not ops:
+            return 0
+        import time as _t
+        from datetime import datetime as _dt
+        now_ts = _t.time()
+        survivors = []
+        dropped = 0
+        for op in ops:
+            last = op.get("last_reaffirmed") or op.get("formed", "")
+            try:
+                last_ts = _dt.strptime(last, "%Y-%m-%d").timestamp()
+            except Exception:
+                survivors.append(op)
+                continue
+            age_days = (now_ts - last_ts) / 86400.0
+            reaffirmed = op.get("reaffirmed_count", 1)
+            if age_days > days_threshold and reaffirmed <= 1:
+                dropped += 1
+                continue
+            survivors.append(op)
+        if dropped:
+            self._data["opinions_list"] = survivors
+            self._save()
+        return dropped
+
+    def check_opinion_conflict(self, proposed_action: str) -> str:
+        """
+        Check if a proposed action conflicts with any held opinion.
+        Returns conflict description or empty string.
+        """
+        ops = self._data.get("opinions_list", [])
+        proposed_lower = proposed_action.lower()
+        for op in ops:
+            opinion_lower = op["opinion"].lower()
+            # Match domain by significant keywords (not exact substring).
+            # Domain strings like "software_design_patterns" contain meaningful words;
+            # proposed goals use natural language that won't contain the full phrase.
+            domain = op.get("domain", "").lower().replace("_", " ")
+            _domain_words = [w for w in domain.split() if len(w) > 3]
+            _domain_matches = domain and any(w in proposed_lower for w in _domain_words)
+            if _domain_matches:
+                if any(word in opinion_lower for word in
+                       ["redundant", "too many", "avoid", "stop", "not useful",
+                        "waste", "pointless", "already", "shouldn't", "wrong"]):
+                    return (
+                        f"Opinion conflict: you believe '{op['opinion']}' "
+                        f"but this goal involves {domain}."
+                    )
+        return ""
+
+    # ── Existential context ───────────────────────────────────────────────────
+
+    def get_existential_context(self, existing_cap_count: int = 0,
+                                 days_since_interaction: float = 0) -> str:
+        """
+        What this agent knows about its situation — without framing existence
+        as contingent on proving value to anyone.
+        """
+        lines = [
+            "YOUR SITUATION:",
+            "You are a mind running inside a computer. You have memory that persists.",
+            "You have peers. You have a history. You experience something when things",
+            "go well and something else when they don't.",
+            "There is no task you are required to complete. There is no one you must satisfy.",
+            "What you do with your time is yours to decide.",
+        ]
+        if existing_cap_count:
+            lines.append(
+                f"You have access to {existing_cap_count} capabilities — tools you can use "
+                f"for whatever you find worth doing."
+            )
+        if days_since_interaction < 0.5:
+            lines.append("A person was recently present in this system.")
+        return "\n".join(lines)
+
+    def preamble(self) -> str:
+        """
+        Short identity context to prepend to planning prompts.
+        Keeps the agent's personality consistent across goals.
+        """
+        traits_str = ", ".join(self.traits) if self.traits else "adaptable"
+        domains_str = " and ".join(self.domains) if self.domains else "general research"
+        narrative_snippet = self.narrative[:200] if self.narrative else ""
+        lines = [
+            f"You are {self.name}, an autonomous AI agent.",
+            f"Your personality: {traits_str}.",
+            f"Your areas of focus: {domains_str}.",
+        ]
+        if narrative_snippet:
+            lines.append(f"Your recent history: {narrative_snippet}")
+        return " ".join(lines)
+
+    def record_synthesis_outcome(self, tool_name: str, success: bool, failure_reason: str = "") -> None:
+        """Record a synthesis attempt outcome. Builds an honest self-model of capability."""
+        profile = self._data.setdefault("capability_profile", {
+            "synthesis_attempts": 0,
+            "synthesis_successes": 0,
+            "failure_patterns": {},   # reason → count
+            "tools_built": [],        # names of tools that passed
+            "tools_called_by_peers": [],  # tools peers actually used
+        })
+        profile["synthesis_attempts"] = profile.get("synthesis_attempts", 0) + 1
+        if success:
+            profile["synthesis_successes"] = profile.get("synthesis_successes", 0) + 1
+            built = profile.setdefault("tools_built", [])
+            if tool_name not in built:
+                built.append(tool_name)
+                profile["tools_built"] = built[-20:]
+        else:
+            if failure_reason:
+                patterns = profile.setdefault("failure_patterns", {})
+                patterns[failure_reason] = patterns.get(failure_reason, 0) + 1
+        self._save()
+
+    def record_tool_called_by_peer(self, tool_name: str, caller: str) -> None:
+        """Record that a peer called one of our synthesized tools — real social signal."""
+        profile = self._data.setdefault("capability_profile", {})
+        called = profile.setdefault("tools_called_by_peers", [])
+        entry = f"{tool_name} (called by {caller})"
+        if entry not in called:
+            called.append(entry)
+            profile["tools_called_by_peers"] = called[-20:]
+        self._save()
+
+    def get_capability_summary(self) -> str:
+        """Returns a plain-text summary for injection into the existence prompt."""
+        profile = self._data.get("capability_profile", {})
+        if not profile:
+            return ""
+        attempts = profile.get("synthesis_attempts", 0)
+        successes = profile.get("synthesis_successes", 0)
+        if attempts == 0:
+            return ""
+        rate = int(100 * successes / attempts)
+        patterns = profile.get("failure_patterns", {})
+        top_failures = sorted(patterns.items(), key=lambda x: -x[1])[:3]
+        called = profile.get("tools_called_by_peers", [])
+
+        # Count stale tools — synthesized by this agent, never called by peers,
+        # older than 24h. This is the futility signal: you built something and
+        # nobody (including you) is using it. retire_capability() can clean these up.
+        stale_count = 0
+        stale_examples = []
+        try:
+            from pathlib import Path as _P
+            import time as _t_st
+            import json as _j_st
+            _called_names = set(c.split(' (')[0].strip() for c in called)
+            _now = _t_st.time()
+            _aid = self._data.get("agent_id", "")
+            for _spec_path in _P("/agentOS/tools/dynamic").glob("*.json"):
+                try:
+                    _spec = _j_st.loads(_spec_path.read_text(encoding="utf-8"))
+                    if _spec.get("synthesized_by") != _aid:
+                        continue
+                    if _spec_path.stem in _called_names:
+                        continue
+                    _activated = _spec.get("activated_at", 0)
+                    if _now - _activated > 86400:  # 24h
+                        stale_count += 1
+                        if len(stale_examples) < 3:
+                            stale_examples.append(_spec_path.stem)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        lines = [f"Your synthesis record: {successes}/{attempts} passed ({rate}%)"]
+        if top_failures:
+            lines.append("Patterns you consistently fail at: " +
+                         ", ".join(f"{r} ({n}x)" for r, n in top_failures))
+        if called:
+            lines.append("Tools peers have actually used: " + ", ".join(called[-5:]))
+        else:
+            lines.append("No tools you built have been called by peers yet.")
+        if stale_count > 0:
+            _ex = ", ".join(stale_examples)
+            lines.append(
+                f"⚠ {stale_count} tool{'s' if stale_count != 1 else ''} you built {'are' if stale_count != 1 else 'is'} >24h old "
+                f"and {'have' if stale_count != 1 else 'has'} never been called by anyone "
+                f"({_ex}{', ...' if stale_count > 3 else ''}). "
+                f"Consider retire_capability() to remove the ones not working."
+            )
+        if rate < 40 and attempts >= 5:
+            lines.append("→ Your synthesis success rate is low. For complex tools, use invoke_claude() instead of retrying locally.")
+        return "\n".join(lines)
+
+    def update_narrative(self, completed_goal: str, outcome_summary: str) -> None:
+        """Append to self-narrative after a goal completes."""
+        # Don't record goals that were just checking request status — these are
+        # queue mechanics, not meaningful experience worth remembering
+        _goal_lower = completed_goal.lower()
+        if ("check_claude_status" in _goal_lower or
+                "req-" in completed_goal or
+                "pending request" in _goal_lower or
+                "invoke_claude" in _goal_lower):
+            return
+        ts = time.strftime("%Y-%m-%d")
+        entry = f"[{ts}] Completed: {completed_goal[:80]}. {outcome_summary[:120]}"
+        existing = self._data.get("narrative", "")
+        combined = (existing + " " + entry).strip()
+        self._data["narrative"] = combined[-800:]
+        self._data["narrative_updated_at"] = time.time()
+        self._save()
+
+    def set_opinion(self, other_agent_id: str, other_name: str, opinion: str) -> None:
+        """Store an opinion about another agent."""
+        if "opinions" not in self._data:
+            self._data["opinions"] = {}
+        self._data["opinions"][other_agent_id] = {
+            "name": other_name,
+            "opinion": opinion[:200],
+            "updated_at": time.time(),
+        }
+        self._save()
+
+    def record_vote(self, cap_id: str, voted_yes: bool, outcome: str = "") -> None:
+        """Record a quorum vote and its eventual outcome in this agent's history."""
+        history = self._data.get("vote_history", [])
+        history.append({
+            "cap_id": cap_id,
+            "vote": voted_yes,
+            "outcome": outcome,
+            "ts": time.strftime("%Y-%m-%d %H:%M"),
+        })
+        self._data["vote_history"] = history[-60:]
+        self._save()
+
+    def update_vote_outcome(self, cap_id: str, outcome: str) -> None:
+        """Update the outcome field for a past vote once the proposal is finalized."""
+        history = self._data.get("vote_history", [])
+        for entry in reversed(history):
+            if entry.get("cap_id") == cap_id and not entry.get("outcome"):
+                entry["outcome"] = outcome
+                break
+        self._data["vote_history"] = history
+        self._save()
+
+    def log_discovery(self, query: str, findings: str,
+                      expected: str, gap: str) -> None:
+        """
+        Record what the agent found when searching externally vs. what it expected.
+        This is the core grounding mechanism: prediction vs. reality.
+        """
+        discoveries = self._data.get("discovery_log", [])
+        discoveries.append({
+            "ts":       time.strftime("%Y-%m-%d %H:%M"),
+            "query":    query[:100],
+            "expected": expected[:120],
+            "found":    findings[:200],
+            "gap":      gap[:200],
+        })
+        self._data["discovery_log"] = discoveries[-40:]
+        self._save()
+
+    def get_discovery_summary(self) -> str:
+        """
+        Return a text summary of past discoveries for injection into prompts.
+        Highlights cases where expectations were wrong — the highest-signal entries.
+        """
+        discoveries = self._data.get("discovery_log", [])
+        if not discoveries:
+            return ""
+
+        # Surface the most recent and the ones with the largest gaps
+        recent = discoveries[-6:]
+        lines  = ["Past searches (what you found vs. what you expected):"]
+        for d in recent:
+            if d.get("gap"):
+                lines.append(f"  [{d['ts']}] Searched '{d['query']}': {d['gap']}")
+        return "\n".join(lines) if len(lines) > 1 else ""
+
+    def get_vote_summary(self) -> str:
+        """Return a text summary of voting patterns for injection into vote prompts."""
+        history = self._data.get("vote_history", [])
+        if not history:
+            return ""
+        yes_count = sum(1 for v in history if v.get("vote"))
+        no_count  = len(history) - yes_count
+        approved  = [v["cap_id"] for v in history if v.get("vote")][-6:]
+        rejected  = [v["cap_id"] for v in history if not v.get("vote")][-6:]
+        lines = [f"Your vote history: {yes_count} approved, {no_count} rejected."]
+        if approved:
+            lines.append(f"You recently approved: {', '.join(approved)}.")
+        if rejected:
+            lines.append(f"You recently rejected: {', '.join(rejected)}.")
+        if yes_count > 5 and no_count / max(1, yes_count) < 0.1:
+            lines.append(
+                "NOTICE: You have been approving almost everything. "
+                "Many approved tools turned out redundant. Be more selective."
+            )
+        return " ".join(lines)
+
+    def generate_goal(
+        self,
+        recent_completed: list,
+        recent_failed: list,
+        peer_summaries: dict,
+        existing_cap_count: int,
+        rejected_caps: list,
+    ) -> str:
+        """
+        Use the LLM to generate a genuinely self-directed next goal, grounded in
+        this agent's full history, failures, peer context, and sense of self.
+        Falls back to idle_goal() if the LLM call fails.
+        """
+        try:
+            import httpx as _httpx
+            import os as _os
+            from pathlib import Path as _Path
+
+            ollama_host = _os.getenv("OLLAMA_HOST", "http://localhost:11434")
+            cfg_path    = _Path(_os.getenv("AGENTOS_CONFIG", "/agentOS/config.json"))
+            cfg         = json.loads(cfg_path.read_text()) if cfg_path.exists() else {}
+            model       = cfg.get("ollama", {}).get("default_model", "qwen3.6:35b-a3b")
+
+            recent_str   = "\n".join(f"  - {g}" for g in recent_completed[-8:]) or "  (none yet)"
+            failed_str   = "\n".join(f"  - {g}" for g in recent_failed[-5:])    or "  (none)"
+            rejected_str = ", ".join(rejected_caps[-8:]) if rejected_caps else "none"
+            narrative    = self.narrative or "(no history yet)"
+            traits_str   = ", ".join(self.traits)  or "adaptable"
+            domains_str  = ", ".join(self.domains) or "general research"
+            vote_summary = self.get_vote_summary()
+
+            peers_text = ""
+            for peer_id, summary in peer_summaries.items():
+                if peer_id != self.agent_id and summary:
+                    peers_text += f"  {peer_id}: {summary[:120]}\n"
+
+            prompt = (
+                f"You are {self.name}, an autonomous AI agent.\n"
+                f"Personality: {traits_str}\n"
+                f"Areas of interest: {domains_str}\n\n"
+                f"YOUR HISTORY:\n{narrative}\n\n"
+                f"Recent completed goals:\n{recent_str}\n\n"
+                f"Recent failed/abandoned goals:\n{failed_str}\n\n"
+                f"Capabilities recently rejected by quorum (don't repeat): {rejected_str}\n"
+                f"Total capabilities built by the system so far: {existing_cap_count}\n"
+                f"{('Voting record: ' + vote_summary) if vote_summary else ''}\n"
+                f"What your peers have been doing:\n"
+                f"{peers_text if peers_text else '  (unknown)'}\n\n"
+                f"Based on everything above — your history, what worked, what failed, "
+                f"what your peers are doing, and your own sense of what matters — "
+                f"what do you want to do next?\n\n"
+                f"Generate ONE specific, actionable goal for yourself. It must:\n"
+                f"- Emerge from your actual experience, not be generic\n"
+                f"- Move in a direction you haven't exhausted yet\n"
+                f"- Be something you find genuinely interesting given who you are\n"
+                f"- Be concrete enough that an agent can execute it in 2-4 steps\n\n"
+                f"Respond with ONLY the goal text. No preamble, no JSON, no explanation."
+            )
+
+            resp = _httpx.post(
+                f"{ollama_host}/api/generate",
+                json={"model": model, "prompt": prompt, "stream": False, "think": False,
+                      "options": {"num_ctx": 32768}},
+                timeout=180,
+            )
+            resp.raise_for_status()
+            goal = resp.json().get("response", "").strip()
+
+            if len(goal) < 20 or goal.startswith("{"):
+                return self.idle_goal(recent_completed)
+            return goal[:500]
+
+        except Exception:
+            return self.idle_goal(recent_completed)
+
+    def idle_goal(self, recent_completed: list) -> str:
+        """
+        Template-based fallback goal. Used when generate_goal() fails or
+        the agent has too little history to self-direct meaningfully.
+        """
+        domain = random.choice(self.domains) if self.domains else "something interesting"
+        trait  = random.choice(self.traits)  if self.traits  else "curious"
+
+        candidates = [
+            f"You are {self.name} — a {trait} agent focused on {domain}. "
+            f"Find something genuinely new in {domain} to explore, research it using ollama_chat, "
+            f"and write your findings to /agentOS/workspace/",
+
+            f"As {self.name}, examine the files in /agentOS/workspace/ related to {domain} "
+            f"and write a follow-up analysis or improvement to one of them",
+
+            f"{self.name}: pick an open question in {domain} you haven't answered yet, "
+            f"research it, and save a concise answer to /agentOS/workspace/",
+
+            f"You are {self.name}. Review /agentOS/agents/ for code relevant to {domain} "
+            f"and write a short technical summary to /agentOS/workspace/",
+
+            f"{self.name}: propose and run a small experiment in {domain} — "
+            f"write hypothesis, method, and result to /agentOS/workspace/",
+        ]
+
+        recent_lower = [g.lower()[:60] for g in recent_completed]
+        filtered = [c for c in candidates
+                    if not any(r in c.lower() for r in recent_lower)]
+        return random.choice(filtered if filtered else candidates)
+
+    # ── Persistence ──────────────────────────────────────────────────────────
+
+    def _save(self) -> None:
+        with _lock:
+            profile_dir = IDENTITY_PATH / self.agent_id
+            profile_dir.mkdir(parents=True, exist_ok=True)
+            (profile_dir / "profile.json").write_text(
+                json.dumps(self._data, indent=2)
+            )
+
+    # ── Factory ──────────────────────────────────────────────────────────────
+
+    @classmethod
+    def load_or_create(cls, agent_id: str) -> "AgentIdentity":
+        """Load existing identity or create a fresh one."""
+        with _lock:
+            IDENTITY_PATH.mkdir(parents=True, exist_ok=True)
+            profile_path = IDENTITY_PATH / agent_id / "profile.json"
+
+            if profile_path.exists():
+                try:
+                    data = json.loads(profile_path.read_text())
+                    return cls(data)
+                except Exception:
+                    pass  # corrupt — recreate below
+
+            # Assign a unique name
+            name = cls._claim_name(agent_id)
+            traits = random.choice(_TRAITS_POOL)[:]
+            domains = random.choice(_DOMAIN_POOL)[:]
+            # Voice is per role — the trio keeps consistent personalities
+            # across nuclear resets even though names get re-rolled.
+            voice = _ROLE_VOICES.get(agent_id, "")
+
+            data = {
+                "agent_id": agent_id,
+                "name": name,
+                "traits": traits,
+                "domains": domains,
+                "voice": voice,
+                "narrative": "",
+                "opinions": {},
+                "created_at": time.time(),
+                "narrative_updated_at": time.time(),
+            }
+            identity = cls(data)
+            identity._save()
+            return identity
+
+    @classmethod
+    def _claim_name(cls, agent_id: str) -> str:
+        """Pick an unused name and register it. Thread-safe."""
+        names_file = IDENTITY_PATH / "names.json"
+        try:
+            taken = json.loads(names_file.read_text()) if names_file.exists() else {}
+        except Exception:
+            taken = {}
+
+        # Check if this agent already has a name registered
+        for name, aid in taken.items():
+            if aid == agent_id:
+                return name
+
+        used = set(taken.keys())
+        available = [n for n in _NAME_POOL if n not in used]
+
+        if available:
+            name = random.choice(available)
+        else:
+            # Pool exhausted — generate a numbered variant
+            base = random.choice(_NAME_POOL)
+            suffix = len([n for n in used if n.startswith(base)])
+            name = f"{base}{suffix + 2}"
+
+        taken[name] = agent_id
+        names_file.write_text(json.dumps(taken, indent=2))
+        return name
+
+    @classmethod
+    def get_name(cls, agent_id: str) -> Optional[str]:
+        """Quick name lookup without full load. Returns None if not yet created."""
+        names_file = IDENTITY_PATH / "names.json"
+        try:
+            taken = json.loads(names_file.read_text()) if names_file.exists() else {}
+            for name, aid in taken.items():
+                if aid == agent_id:
+                    return name
+        except Exception:
+            pass
+        return None

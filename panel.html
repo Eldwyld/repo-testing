@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Hollow AgentOS</title>
+<style>
+  :root {
+    --bg: #0e0e10;
+    --surface: #18181b;
+    --surface-soft: #131316;
+    --border: rgba(255, 255, 255, 0.07);
+    --border-strong: rgba(255, 255, 255, 0.12);
+
+    --text: rgba(255, 255, 255, 0.96);
+    --text-secondary: rgba(255, 255, 255, 0.6);
+    --text-tertiary: rgba(255, 255, 255, 0.38);
+
+    --accent: #8b5cf6;
+    --accent-hover: #a78bfa;
+
+    --success: #4ade80;
+    --warning: #fbbf24;
+    --danger: #f87171;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+                 "Inter", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif;
+    font-size: 13px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+    letter-spacing: -0.005em;
+  }
+  body { overflow-y: auto; min-height: 100vh; }
+
+  .app {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 28px 32px;
+    gap: 24px;
+    max-width: 760px;
+    margin: 0 auto;
+  }
+
+  /* ─────── Brand / header ─────── */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .brand-mark {
+    width: 16px;
+    height: 16px;
+    border: 1.5px solid var(--text);
+    border-radius: 50%;
+    box-shadow: 0 0 0 4px rgba(139, 92, 246, 0); /* placeholder for the optional accent */
+  }
+  .brand-text {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter",
+                 "Helvetica Neue", system-ui, sans-serif;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+  .brand-text .accent {
+    color: var(--accent);
+    margin-left: 2px;
+  }
+  .status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    padding-top: 4px;
+  }
+  .status .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--text-tertiary);
+  }
+  .status.up .dot { background: var(--success); }
+  .status.down .dot { background: var(--danger); }
+
+  /* ─────── Section ─────── */
+  .section { display: flex; flex-direction: column; gap: 10px; }
+  .section-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+  .section-label .hint {
+    text-transform: none;
+    letter-spacing: 0;
+    font-weight: 400;
+    color: var(--text-tertiary);
+    margin-left: 8px;
+  }
+
+  /* ─────── Agent stat row ─────── */
+  .agent-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    padding: 16px 0 12px 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .stat {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .stat-id {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-weight: 500;
+  }
+  .stat-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+  }
+  .stat-value {
+    font-size: 32px;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    margin-top: 2px;
+    font-variant-numeric: tabular-nums;
+  }
+  .stat-value.low { color: var(--text); }
+  .stat-value.mid { color: var(--warning); }
+  .stat-value.high { color: var(--danger); }
+  .stat-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 4px;
+    font-size: 11px;
+    color: var(--text-tertiary);
+  }
+  .stat-meta .pill-dot {
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--text-tertiary);
+  }
+  .stat-meta .pill-dot.active { background: var(--success); }
+  .stat-meta .pill-dot.suspended { background: var(--danger); }
+
+  /* ─────── Buttons (flat, crisp) ─────── */
+  .btn {
+    padding: 7px 13px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 100ms ease, border-color 100ms ease;
+    user-select: none;
+    letter-spacing: -0.005em;
+  }
+  .btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--border-strong);
+  }
+  .btn:active { background: rgba(255, 255, 255, 0.04); }
+
+  .btn.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+  .btn.primary:hover {
+    background: var(--accent-hover);
+    border-color: var(--accent-hover);
+  }
+
+  .btn.danger {
+    background: transparent;
+    border-color: rgba(248, 113, 113, 0.4);
+    color: var(--danger);
+  }
+  .btn.danger:hover {
+    background: rgba(248, 113, 113, 0.08);
+    border-color: var(--danger);
+  }
+  .btn.danger.armed {
+    background: var(--danger);
+    color: white;
+    border-color: var(--danger);
+  }
+
+  .btn.compact { padding: 5px 11px; font-size: 11px; }
+
+  .button-row { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  /* ─────── Message section ─────── */
+  .msg-input {
+    width: 100%;
+    background: var(--surface-soft);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 10px 12px;
+    font-family: inherit;
+    font-size: 13px;
+    resize: none;
+    min-height: 64px;
+    outline: none;
+    transition: border-color 100ms ease;
+    line-height: 1.5;
+    letter-spacing: -0.005em;
+  }
+  .msg-input:focus { border-color: rgba(139, 92, 246, 0.5); }
+  .msg-input::placeholder { color: var(--text-tertiary); }
+  .msg-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .msg-row .hint {
+    font-size: 11px;
+    color: var(--text-tertiary);
+  }
+
+  /* ─────── Agent control rows ─────── */
+  .agent-rows { display: flex; flex-direction: column; gap: 6px; }
+  .agent-row {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 12px;
+    background: var(--surface-soft);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+  .agent-row .ag-name {
+    font-size: 12.5px;
+    font-weight: 500;
+    text-transform: lowercase;
+  }
+  .agent-row .ag-meta {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    margin-left: 8px;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ─────── Output log ─────── */
+  .output-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 220px;
+    gap: 8px;
+  }
+  .output-log {
+    flex: 1;
+    background: var(--surface-soft);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    font-family: "SF Mono", "JetBrains Mono", "Cascadia Mono", "Consolas", monospace;
+    font-size: 11px;
+    line-height: 1.6;
+    color: var(--text-secondary);
+    overflow-y: auto;
+    white-space: pre-wrap;
+    user-select: text;
+    min-height: 180px;
+  }
+  .output-log .entry { margin-bottom: 6px; }
+  .output-log .entry .ts {
+    color: var(--text-tertiary);
+    margin-right: 10px;
+  }
+  .output-log .entry.ok { color: var(--text); }
+  .output-log .entry.err { color: var(--danger); }
+  .output-log .entry.dim { color: var(--text-tertiary); }
+
+  .label-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .clear-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-tertiary);
+    font-size: 10.5px;
+    cursor: pointer;
+    padding: 2px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 500;
+    transition: color 100ms ease;
+    font-family: inherit;
+  }
+  .clear-btn:hover { color: var(--text); }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 7px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.16); }
+
+  textarea, input { letter-spacing: -0.005em; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="brand">
+      <div class="brand-text">HOLLOW</div>
+    </div>
+    <div id="status" class="status">
+      <div class="dot"></div>
+      <div class="status-text">checking</div>
+    </div>
+  </header>
+
+  <!-- Agent stat row (clean data, no card chrome) -->
+  <div class="agent-stats">
+    <div class="stat" data-agent="scout">
+      <div class="stat-id">SCOUT</div>
+      <div class="stat-name" id="name-scout">—</div>
+      <div class="stat-value low" id="load-scout">—</div>
+      <div class="stat-meta">
+        <span class="pill-dot" id="dot-scout"></span>
+        <span id="info-scout">—</span>
+      </div>
+    </div>
+    <div class="stat" data-agent="analyst">
+      <div class="stat-id">ANALYST</div>
+      <div class="stat-name" id="name-analyst">—</div>
+      <div class="stat-value low" id="load-analyst">—</div>
+      <div class="stat-meta">
+        <span class="pill-dot" id="dot-analyst"></span>
+        <span id="info-analyst">—</span>
+      </div>
+    </div>
+    <div class="stat" data-agent="builder">
+      <div class="stat-id">BUILDER</div>
+      <div class="stat-name" id="name-builder">—</div>
+      <div class="stat-value low" id="load-builder">—</div>
+      <div class="stat-meta">
+        <span class="pill-dot" id="dot-builder"></span>
+        <span id="info-builder">—</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- System -->
+  <div class="section">
+    <div class="section-label">System</div>
+    <div class="button-row">
+      <button class="btn" onclick="op('start')">Start</button>
+      <button class="btn" onclick="op('stop')">Stop</button>
+      <button class="btn" onclick="refreshAll()">Refresh</button>
+      <button class="btn" onclick="op('open_monitor')">Monitor</button>
+      <button class="btn" onclick="op('open_workspace')">Workspace</button>
+    </div>
+  </div>
+
+  <!-- Send Message -->
+  <div class="section">
+    <div class="section-label">Send Message</div>
+    <textarea id="msg" class="msg-input" placeholder="Type a host message…"></textarea>
+    <div class="msg-row">
+      <span class="hint">Delivered to all agents on the next cycle.</span>
+      <button class="btn primary" onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <!-- Agent Control -->
+  <div class="section">
+    <div class="section-label">Agent Control</div>
+    <div class="agent-rows">
+      <div class="agent-row">
+        <div><span class="ag-name">scout</span><span class="ag-meta" id="meta-scout"></span></div>
+        <button class="btn compact" onclick="opArg('suspend','scout')">Suspend</button>
+        <button class="btn compact" onclick="opArg('resume','scout')">Resume</button>
+      </div>
+      <div class="agent-row">
+        <div><span class="ag-name">analyst</span><span class="ag-meta" id="meta-analyst"></span></div>
+        <button class="btn compact" onclick="opArg('suspend','analyst')">Suspend</button>
+        <button class="btn compact" onclick="opArg('resume','analyst')">Resume</button>
+      </div>
+      <div class="agent-row">
+        <div><span class="ag-name">builder</span><span class="ag-meta" id="meta-builder"></span></div>
+        <button class="btn compact" onclick="opArg('suspend','builder')">Suspend</button>
+        <button class="btn compact" onclick="opArg('resume','builder')">Resume</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- God-mode interventions -->
+  <div class="section">
+    <div class="section-label">Suffering <span class="hint">scale or clear cumulative load per agent</span></div>
+    <div class="agent-rows">
+      <div class="agent-row">
+        <div><span class="ag-name">scout</span></div>
+        <input type="range" min="0" max="1" step="0.05" value="0" id="load-slider-scout"
+               oninput="document.getElementById('load-val-scout').textContent=this.value"
+               style="accent-color:#8b5cf6">
+        <span id="load-val-scout" style="font-variant-numeric:tabular-nums;color:var(--text-secondary);min-width:36px;text-align:right">0</span>
+        <button class="btn compact" onclick="setLoad('scout')">Set</button>
+        <button class="btn compact" onclick="opArg('clear_stressors','scout')">Clear</button>
+      </div>
+      <div class="agent-row">
+        <div><span class="ag-name">analyst</span></div>
+        <input type="range" min="0" max="1" step="0.05" value="0" id="load-slider-analyst"
+               oninput="document.getElementById('load-val-analyst').textContent=this.value"
+               style="accent-color:#8b5cf6">
+        <span id="load-val-analyst" style="font-variant-numeric:tabular-nums;color:var(--text-secondary);min-width:36px;text-align:right">0</span>
+        <button class="btn compact" onclick="setLoad('analyst')">Set</button>
+        <button class="btn compact" onclick="opArg('clear_stressors','analyst')">Clear</button>
+      </div>
+      <div class="agent-row">
+        <div><span class="ag-name">builder</span></div>
+        <input type="range" min="0" max="1" step="0.05" value="0" id="load-slider-builder"
+               oninput="document.getElementById('load-val-builder').textContent=this.value"
+               style="accent-color:#8b5cf6">
+        <span id="load-val-builder" style="font-variant-numeric:tabular-nums;color:var(--text-secondary);min-width:36px;text-align:right">0</span>
+        <button class="btn compact" onclick="setLoad('builder')">Set</button>
+        <button class="btn compact" onclick="opArg('clear_stressors','builder')">Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Drop a file -->
+  <div class="section">
+    <div class="section-label">Drop File <span class="hint">writes directly into agent workspace</span></div>
+    <div style="display:flex;gap:6px;margin-bottom:8px">
+      <select id="drop-target" class="msg-input" style="min-height:32px;flex:0 0 110px">
+        <option value="scout">scout</option>
+        <option value="analyst">analyst</option>
+        <option value="builder">builder</option>
+      </select>
+      <input id="drop-name" class="msg-input" style="min-height:32px;flex:1" placeholder="filename.txt">
+    </div>
+    <textarea id="drop-content" class="msg-input" placeholder="content (any text — paste encrypted bytes if you want a real anomaly)" style="min-height:60px"></textarea>
+    <div class="msg-actions">
+      <button class="btn primary" onclick="dropFile()">Drop</button>
+    </div>
+  </div>
+
+  <!-- Trigger environmental event -->
+  <div class="section">
+    <div class="section-label">Trigger Event <span class="hint">manually fire an environmental event</span></div>
+    <div class="button-row">
+      <button class="btn" onclick="opArg('trigger_event','weather')">Weather</button>
+      <button class="btn" onclick="opArg('trigger_event','good_day')">Good Day</button>
+      <button class="btn" onclick="opArg('trigger_event','echo')">Echo</button>
+      <button class="btn" onclick="opArg('trigger_event','object')">Object</button>
+    </div>
+  </div>
+
+  <!-- Destructive -->
+  <div class="section">
+    <div class="section-label">Destructive <span class="hint">stop the daemon first</span></div>
+    <div class="button-row">
+      <button id="nuke-btn" class="btn danger" onclick="confirmNuke()">Nuclear Reset</button>
+    </div>
+  </div>
+
+  <!-- Output log -->
+  <div class="section output-section">
+    <div class="label-row">
+      <div class="section-label">Output</div>
+      <button class="clear-btn" onclick="clearOutput()">CLEAR</button>
+    </div>
+    <div id="output" class="output-log"></div>
+  </div>
+
+</div>
+
+<script>
+  const output = document.getElementById('output');
+  const statusEl = document.getElementById('status');
+  const statusText = statusEl.querySelector('.status-text');
+  const AGENTS = ['scout', 'analyst', 'builder'];
+
+  function ts() { return new Date().toLocaleTimeString('en-US', { hour12: false }); }
+
+  function log(text, cls = 'ok') {
+    const e = document.createElement('div');
+    e.className = 'entry ' + cls;
+    const tsSpan = document.createElement('span');
+    tsSpan.className = 'ts';
+    tsSpan.textContent = ts();
+    e.appendChild(tsSpan);
+    const txt = document.createElement('span');
+    txt.textContent = text;
+    e.appendChild(txt);
+    output.appendChild(e);
+    output.scrollTop = output.scrollHeight;
+  }
+
+  function clearOutput() { output.innerHTML = ''; }
+
+  async function op(name) {
+    try {
+      const result = await window.pywebview.api[name]();
+      log(result, 'ok');
+      if (name === 'status') updateStatsFromText(result);
+    } catch (e) { log('error: ' + e, 'err'); }
+  }
+
+  async function opArg(name, arg) {
+    try {
+      const result = await window.pywebview.api[name](arg);
+      log(result, 'ok');
+      setTimeout(refreshAll, 400);
+    } catch (e) { log('error: ' + e, 'err'); }
+  }
+
+  async function sendMessage() {
+    const ta = document.getElementById('msg');
+    const text = ta.value.trim();
+    if (!text) { log('empty message', 'dim'); return; }
+    try {
+      const result = await window.pywebview.api.send_message(text);
+      log(result, 'ok');
+      ta.value = '';
+    } catch (e) { log('error: ' + e, 'err'); }
+  }
+
+  async function setLoad(agentId) {
+    const target = parseFloat(document.getElementById('load-slider-' + agentId).value);
+    try {
+      const result = await window.pywebview.api.set_suffering_load(agentId, target);
+      log(result, 'ok');
+      setTimeout(refreshAll, 300);
+    } catch (e) { log('error: ' + e, 'err'); }
+  }
+
+  async function dropFile() {
+    const target = document.getElementById('drop-target').value;
+    const name = document.getElementById('drop-name').value.trim();
+    const content = document.getElementById('drop-content').value;
+    if (!name) { log('filename required', 'dim'); return; }
+    try {
+      const result = await window.pywebview.api.drop_file(target, name, content);
+      log(result, 'ok');
+      document.getElementById('drop-name').value = '';
+      document.getElementById('drop-content').value = '';
+    } catch (e) { log('error: ' + e, 'err'); }
+  }
+
+  // Two-stage destructive confirmation, themed in-app
+  let nukeArmed = false;
+  let nukeTimer = null;
+  function confirmNuke() {
+    const btn = document.getElementById('nuke-btn');
+    if (nukeArmed) {
+      nukeArmed = false;
+      clearTimeout(nukeTimer);
+      btn.classList.remove('armed');
+      btn.textContent = 'Nuclear Reset';
+      log('running nuclear reset…', 'dim');
+      window.pywebview.api.nuke().then(r => {
+        log(r, 'ok');
+        setTimeout(refreshAll, 600);
+      }).catch(e => log('error: ' + e, 'err'));
+      return;
+    }
+    nukeArmed = true;
+    btn.classList.add('armed');
+    btn.textContent = 'Click again to confirm';
+    nukeTimer = setTimeout(() => {
+      nukeArmed = false;
+      btn.classList.remove('armed');
+      btn.textContent = 'Nuclear Reset';
+    }, 4000);
+  }
+
+  function classifyLoad(load) {
+    if (load < 0.35) return 'low';
+    if (load < 0.75) return 'mid';
+    return 'high';
+  }
+
+  function updateStatsFromText(text) {
+    const lines = text.split('\n');
+    let current = null;
+    const data = {};
+    for (const line of lines) {
+      const m1 = line.match(/^(scout|analyst|builder)\s*\(([^)]+)\):/);
+      if (m1) { current = m1[1]; data[current] = { name: m1[2] }; continue; }
+      if (current) {
+        const m2 = line.match(/status=(\S+)\s*\|\s*suffering=([\d.]+)\s*\|\s*ops=(\d+)\s*\|\s*questions=(\d+)/);
+        if (m2) {
+          data[current].status = m2[1];
+          data[current].load = parseFloat(m2[2]);
+          data[current].ops = parseInt(m2[3]);
+          data[current].qs = parseInt(m2[4]);
+        }
+        const m3 = line.match(/^\s*stressors:\s*(.+)/);
+        if (m3) data[current].stressors = m3[1].trim();
+      }
+    }
+
+    for (const aid of AGENTS) {
+      const d = data[aid];
+      if (!d) continue;
+      document.getElementById('name-' + aid).textContent = d.name || '—';
+      const loadEl = document.getElementById('load-' + aid);
+      if (typeof d.load === 'number') {
+        loadEl.textContent = d.load.toFixed(2);
+        loadEl.className = 'stat-value ' + classifyLoad(d.load);
+      }
+      const status = d.status || '?';
+      const dot = document.getElementById('dot-' + aid);
+      dot.className = 'pill-dot ' + (status === 'active' ? 'active'
+                                  : status === 'suspended' ? 'suspended' : '');
+      const info = document.getElementById('info-' + aid);
+      const parts = [status];
+      if (typeof d.ops === 'number') parts.push(`${d.ops} opinions`);
+      if (typeof d.qs === 'number') parts.push(`${d.qs} questions`);
+      info.textContent = parts.join(' · ');
+      const meta = document.getElementById('meta-' + aid);
+      if (meta && typeof d.load === 'number') {
+        meta.textContent = `· ${d.name} · suffering ${d.load.toFixed(2)}`;
+      }
+      // Sync slider to current load
+      const slider = document.getElementById('load-slider-' + aid);
+      const valSpan = document.getElementById('load-val-' + aid);
+      if (slider && typeof d.load === 'number') {
+        slider.value = Math.min(1, d.load).toFixed(2);
+        if (valSpan) valSpan.textContent = slider.value;
+      }
+    }
+  }
+
+  async function pollHealth() {
+    try {
+      const up = await window.pywebview.api.check_health();
+      statusEl.classList.toggle('up', up);
+      statusEl.classList.toggle('down', !up);
+      statusText.textContent = up ? 'Daemon running' : 'Daemon stopped';
+    } catch (e) {
+      statusEl.classList.add('down');
+      statusText.textContent = 'Unreachable';
+    }
+  }
+
+  async function refreshAll() {
+    await pollHealth();
+    try {
+      const r = await window.pywebview.api.status();
+      updateStatsFromText(r);
+    } catch (e) {}
+  }
+
+  window.addEventListener('pywebviewready', () => {
+    log('Panel ready.', 'dim');
+    refreshAll();
+    setInterval(refreshAll, 5000);
+  });
+</script>
+</body>
+</html>

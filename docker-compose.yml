@@ -1,0 +1,125 @@
+# Hollow AgentOS — full stack
+#
+# Default — pulls pre-built image from GHCR, no build step required:
+#   docker compose up -d
+#
+# Build from source (contributors):
+#   docker compose up -d --build
+#
+# With Ollama inside Docker (NVIDIA GPU + nvidia-container-toolkit):
+#   docker compose --profile ollama up -d
+#
+# Dashboard:  http://localhost:7778
+# API:        http://localhost:7777
+# API docs:   http://localhost:7777/docs
+
+services:
+  api:
+    # Use local build if available (hollow-agentos-local), otherwise pull from GHCR.
+    # To build locally: docker build -t hollow-agentos-local .
+    # Then: docker compose up -d
+    image: ${HOLLOW_API_IMAGE:-ghcr.io/ninjahawk/hollow-agentos:latest}
+    build:
+      context: .
+      # 'image' above is used as-is when pulled from GHCR.
+      # 'build' kicks in only when you run --build or docker compose build.
+    container_name: hollow-api
+    # host.docker.internal resolves automatically on Docker Desktop (Win/Mac).
+    # On native Linux Docker (no Desktop), this hostname doesn't exist unless
+    # we map it explicitly to the host gateway. Harmless on Win/Mac.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "7777:7777"
+    volumes:
+      - ./memory:/agentOS/memory
+      - ./workspace:/agentOS/workspace
+      - ./config.json:/agentOS/config.json:ro
+      - ./logs:/agentOS/logs
+      - ./memory/dynamic_tools:/agentOS/tools/dynamic
+      - ./agents/live_capabilities.py:/agentOS/agents/live_capabilities.py:ro
+      - ./agents/daemon.py:/agentOS/agents/daemon.py:ro
+      - ./agents/autonomy_loop.py:/agentOS/agents/autonomy_loop.py:ro
+      - ./agents/suffering.py:/agentOS/agents/suffering.py:ro
+      - ./agents/task_queue.py:/agentOS/agents/task_queue.py:ro
+      - ./agents/agent_identity.py:/agentOS/agents/agent_identity.py:ro
+      - ./agents/reasoning_layer.py:/agentOS/agents/reasoning_layer.py:ro
+      - ./agents/execution_engine.py:/agentOS/agents/execution_engine.py:ro
+      - ./agents/transaction.py:/agentOS/agents/transaction.py:ro
+      - ./agents/lessons.py:/agentOS/agents/lessons.py:ro
+      - ./entrypoint.sh:/agentOS/entrypoint.sh:ro
+      - ./design:/agentOS/design
+      # Store data mounted so repair_wrappers.py can write directly (bypasses SHA dedup)
+      - ./store/data:/agentOS/store/data
+      # Claude Code credentials — mounted read-only so agents can use OAuth tokens
+      # (extra usage credits). Works automatically if Claude Code is installed.
+      # Path is set by installer; missing file is silently ignored at runtime.
+      - ${CLAUDE_CREDENTIALS_FILE:-/dev/null}:/claude-auth/.credentials.json:ro
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONPYCACHEPREFIX=/tmp/pycache
+      - OLLAMA_HOST=http://host.docker.internal:11434
+      # Optional overrides — set in .env or via installer
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - ANTHROPIC_AUTH_TOKEN=${ANTHROPIC_AUTH_TOKEN:-}
+      - HOLLOW_STORE_URL=http://host.docker.internal:7779
+      - HOLLOW_STORE_DATA=/agentOS/store/data
+      # Telegram credentials — set in .env. NEVER commit values to git.
+      - HOLLOW_TG_BOT_TOKEN=${HOLLOW_TG_BOT_TOKEN:-}
+      - HOLLOW_TG_CHAT_ID=${HOLLOW_TG_CHAT_ID:-}
+    # GPU acceleration — remove this block if you don't have an NVIDIA GPU.
+    # Planning calls drop from ~40s to ~6s with GPU. Works without it.
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7777/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  store:
+    # Use pre-built image from GHCR when available; falls back to local build.
+    # Image is published by .github/workflows/docker-publish.yml on every push to main.
+    image: ${HOLLOW_STORE_IMAGE:-ghcr.io/ninjahawk/hollow-store:latest}
+    build:
+      context: .
+      dockerfile: store/Dockerfile
+    container_name: hollow-store
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "7779:7779"
+    volumes:
+      - ./store/data:/store/data
+    environment:
+      - HOLLOW_STORE_DATA=/store/data
+      - HOLLOW_STORE_PORT=7779
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama
+    container_name: hollow-ollama
+    profiles:
+      - ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-models:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+
+volumes:
+  ollama-models:
