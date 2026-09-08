@@ -143,15 +143,17 @@ All three result in the same symptom: agent calls the tool, execution engine ret
 ---
 
 ### BUG-015 — Synthesized tools can write to core system files via Python file I/O
-**Status:** fixed (2026-05-05)  
-**File:** `agents/live_capabilities.py` — `shell_exec()` + `synthesize_capability()`; `agents/daemon.py` — `_hotload_dynamic_tools()`  
+**Status:** fixed (2026-05-05); **guard bypass found and closed (2026-09-08)**  
+**File:** `agents/live_capabilities.py` — `shell_exec()` + `synthesize_capability()`; `agents/daemon.py` — `_hotload_dynamic_tools()`; `agents/ast_guard.py` (new, shared)  
 **Description:** Scout synthesized `registry_persistence_fixer` — a tool with module-level `open('/agentOS/agents/registry.py', 'w')` that ran at hotload import time, truncating registry.py to zero bytes before dying with NameError. Container crashed on every restart with `ImportError: cannot import name 'AgentRegistry'`. The `exec_module()` call in the hotloader executes all top-level code, not just function definitions.  
-**Fix (layered):**
+**Original fix (layered):**
 1. `synthesize_capability`: AST check rejects any module-level statement that isn't `def/class/import/assignment/constant`. Pattern scan rejects `open(path, 'w')` targeting protected paths.
 2. `_hotload_dynamic_tools`: same AST check before `exec_module` — last line of defense even for tools that bypassed synthesize_capability.
 3. `shell_exec`: regex check blocks `open('/agentOS/agents/...', 'w')` patterns in shell-executed Python.
 4. Manually deleted `registry_persistence_fixer.py` and other broken tools. Container recreated to restore registry.py from image.
 
+**2026-09-08 follow-up:** the "def/class/import/assignment/constant" allowlist described above does not actually mean "no code runs at import" — it only blocks the exact shape of the original incident. `Assign` still evaluates its right-hand side (`_ = open(path, 'w').write('')` is an allowed `Assign`), `ClassDef` still executes its entire body (`class _C: _y = __import__('subprocess').run(...)`), and a decorator on an allowed `FunctionDef` still runs at import time. All three load and execute today against the pre-fix guard. Closed by replacing the node-type allowlist in both `synthesize_capability` and `_hotload_dynamic_tools` with `agents.ast_guard.check_module_body()`, which additionally requires every `Assign`/`AnnAssign` right-hand side to be a literal (recursively — no `Call`, `Attribute`, or `Name` anywhere in it), rejects `ClassDef` outright, and rejects any decorator. The two gates now share one implementation so they can't drift apart again. This is still not a sandbox — a plain `import` of a malicious module is not something an AST allowlist can catch — see `agents/ast_guard.py`'s docstring for the actual fix (subprocess isolation, non-root uid, restricted filesystem view), which has not been done.
+
 ---
 
-*Last updated: 2026-05-05*
+*Last updated: 2026-09-08*

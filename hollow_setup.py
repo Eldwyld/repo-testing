@@ -421,6 +421,13 @@ def _install_ollama() -> tuple[bool, str]:
             return False, str(e)
 
 
+# The literal placeholder shipped in config.example.json — a config copied
+# from it (the Dockerfile does this at build time; so does CI) keeps this
+# forever unless it's explicitly upgraded, which is a publicly known
+# credential sitting behind whatever port 7777 is bound to.
+_PLACEHOLDER_TOKEN = "replace-this-with-any-random-string"
+
+
 def _write_config(model_id: str) -> None:
     if not CONFIG_EXAMPLE.exists():
         raise FileNotFoundError(f"config.example.json not found at {CONFIG_EXAMPLE}")
@@ -428,6 +435,9 @@ def _write_config(model_id: str) -> None:
         try:
             config = json.loads(CONFIG_PATH.read_text())
             config["ollama"]["default_model"] = model_id
+            token = config.get("api", {}).get("token", "")
+            if not token or token == _PLACEHOLDER_TOKEN:
+                config.setdefault("api", {})["token"] = secrets.token_urlsafe(24)
             CONFIG_PATH.write_text(json.dumps(config, indent=2))
             return
         except Exception:

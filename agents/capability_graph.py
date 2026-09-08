@@ -49,6 +49,8 @@ from pathlib import Path
 from typing import Optional, Callable
 import numpy as np
 
+from agents.atomic_io import atomic_write_text
+
 EMBEDDING_AVAILABLE = True  # always available via Ollama
 
 CAPABILITY_PATH = Path(os.getenv("AGENTOS_MEMORY_PATH", "/agentOS/memory")) / "capabilities"
@@ -158,7 +160,8 @@ class CapabilityGraph:
 
             # Append to registry
             registry_file = CAPABILITY_PATH / "registry.jsonl"
-            registry_file.write_text(
+            atomic_write_text(
+                registry_file,
                 registry_file.read_text() + json.dumps(asdict(cap)) + "\n"
                 if registry_file.exists()
                 else json.dumps(asdict(cap)) + "\n"
@@ -178,7 +181,7 @@ class CapabilityGraph:
             else:
                 index[cap.capability_id] = -1  # registered but not semantically indexed
 
-            index_file.write_text(json.dumps(index, indent=2))
+            atomic_write_text(index_file, json.dumps(index, indent=2))
 
         return cap.capability_id
 
@@ -372,7 +375,7 @@ class CapabilityGraph:
                     new_lines.append(updated_cap_json if d.get("capability_id") == capability_id else line)
                 except Exception:
                     new_lines.append(line)
-            registry_file.write_text("\n".join(new_lines) + "\n")
+            atomic_write_text(registry_file, "\n".join(new_lines) + "\n")
 
     def learn_composition(self, composition: CompositionPlan) -> None:
         """

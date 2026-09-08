@@ -30,7 +30,11 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
-      - "7777:7777"
+      # Bound to localhost by default — the API trusts its bearer token as
+      # sole gatekeeper, so exposing it beyond the host is opt-in. Set
+      # HOLLOW_API_BIND_ADDR=0.0.0.0 (e.g. in .env) to publish on all
+      # interfaces, such as reaching it from another machine on your LAN.
+      - "${HOLLOW_API_BIND_ADDR:-127.0.0.1}:7777:7777"
     volumes:
       - ./memory:/agentOS/memory
       - ./workspace:/agentOS/workspace
@@ -77,6 +81,23 @@ services:
               count: all
               capabilities: [gpu]
     restart: unless-stopped
+    # Hardening notes:
+    #  - no-new-privileges blocks setuid/setgid privilege escalation inside
+    #    the container without affecting anything the app or its shell
+    #    capabilities normally do.
+    #  - pids_limit caps runaway process/fork-bomb growth from a bad
+    #    synthesized tool or shell command.
+    #  - The container still runs as root (no non-root USER / cap_drop
+    #    here): shell/installer.py's tool-install capability runs
+    #    `apt-get install -y <tool>` at runtime as a first-class feature,
+    #    which needs root. Dropping to non-root or cap_drop: [ALL] would
+    #    break that without a redesign (e.g. routing installs through a
+    #    privileged helper) — see review H1-H3 for the fuller picture;
+    #    do this alongside making shell/live_capabilities actually run in
+    #    a subprocess sandbox rather than the daemon's own process.
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 2048
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:7777/health"]
       interval: 15s

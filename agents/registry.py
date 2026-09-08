@@ -9,6 +9,7 @@ but runs as the "root" agent with full capabilities.
 import json
 import hashlib
 import hmac
+import logging
 import time
 import uuid
 import os
@@ -16,6 +17,10 @@ from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
+
+from agents.atomic_io import atomic_write_text, load_json_fail_closed
+
+log = logging.getLogger("agentos.registry")
 import threading
 
 REGISTRY_PATH = Path(os.getenv("AGENTOS_MEMORY_PATH", "/agentOS/memory") + "/agent-registry.json")
@@ -266,7 +271,7 @@ class AgentRegistry:
 
     def authenticate(self, token: str) -> Optional[AgentRecord]:
         """Resolve a raw token to an agent. O(1) via token hash index."""
-        if token == self._master_token:
+        if self._master_token and hmac.compare_digest(token, self._master_token):
             return self._agents.get("root")
         token_hash = _hash_token(token)
         agent_id = self._token_index.get(token_hash)
@@ -533,25 +538,31 @@ class AgentRegistry:
         return required_cap in policy
 
     def _load(self):
-        if REGISTRY_PATH.exists():
-            try:
-                data = json.loads(REGISTRY_PATH.read_text())
-                for d in data.values():
-                    # Backwards compat: add new fields if missing
-                    d.setdefault("locks", {})
-                    d.setdefault("model_policies", {})
-                    d.setdefault("spawn_depth", 0)
-                    d.setdefault("group_id", None)       # v0.8.0
-                    d.setdefault("tombstone_path", None)  # v0.8.0
-                    r = AgentRecord(**d)
-                    self._agents[r.agent_id] = r
-                    # Rebuild O(1) token index — only active agents authenticate
-                    if r.status == "active":
-                        self._token_index[r.token_hash] = r.agent_id
-            except Exception:
-                pass
+        # Fails CLOSED: a corrupt registry file is quarantined and logged at
+        # ERROR rather than silently discarded, which previously meant every
+        # registered agent — and its capability grants — vanished with no
+        # trace of why.
+        data, corrupt = load_json_fail_closed(REGISTRY_PATH)
+        if data is None:
+            if corrupt:
+                log.error("AgentRegistry._load: corrupt agent-registry.json — quarantined; starting empty")
+            return
+        try:
+            for d in data.values():
+                # Backwards compat: add new fields if missing
+                d.setdefault("locks", {})
+                d.setdefault("model_policies", {})
+                d.setdefault("spawn_depth", 0)
+                d.setdefault("group_id", None)       # v0.8.0
+                d.setdefault("tombstone_path", None)  # v0.8.0
+                r = AgentRecord(**d)
+                self._agents[r.agent_id] = r
+                # Rebuild O(1) token index — only active agents authenticate
+                if r.status == "active":
+                    self._token_index[r.token_hash] = r.agent_id
+        except Exception:
+            log.error("AgentRegistry._load: agent-registry.json parsed but records were malformed", exc_info=True)
 
     def _save(self):
-        REGISTRY_PATH.parent.mkdir(parents=True, exist_ok=True)
         out = {aid: asdict(a) for aid, a in self._agents.items()}
-        REGISTRY_PATH.write_text(json.dumps(out, indent=2))
+        atomic_write_text(REGISTRY_PATH, json.dumps(out, indent=2))

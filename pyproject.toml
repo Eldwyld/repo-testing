@@ -37,4 +37,5 @@ packages = ["sdk"]
 markers = [
     "integration: marks tests as integration tests requiring a live server",
     "slow: marks tests as slow (e.g. timeout tests taking 65s+)",
+    "flaky_under_load: marks tests that are sensitive to system load/timing",
 ]

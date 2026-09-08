@@ -8,6 +8,7 @@ Run:
     PYTHONPATH=. pytest tests/integration/test_transactions.py -v -m integration -k "not timeout"
 """
 
+import os
 import time
 import pytest
 import requests
@@ -15,6 +16,11 @@ import requests
 pytestmark = pytest.mark.integration
 
 API_URL = "http://localhost:7777"
+
+# fs/write and fs/edit are confined to the deployment's actual workspace
+# root (api/server.py:_FS_ALLOWED_ROOTS) — write test scratch files there,
+# not to an arbitrary /tmp path the API can no longer reach.
+WORKSPACE_ROOT = os.getenv("AGENTOS_WORKSPACE_ROOT", "/agentOS/workspace")
 
 
 def _api_reachable() -> bool:
@@ -89,7 +95,7 @@ class TestHappyPath:
         Assert txn.committed event with ops_count=3.
         """
         import os
-        base = f"/tmp/txn-happy-{int(time.time())}"
+        base = f"{WORKSPACE_ROOT}/txn-happy-{int(time.time())}"
         paths = [f"{base}-{i}.txt" for i in range(3)]
         contents = [f"file {i} content from transaction" for i in range(3)]
 
@@ -149,7 +155,7 @@ class TestExplicitRollback:
         Begin txn. Stage 2 file writes. Rollback.
         Assert neither file was written. txn.rolled_back event fired.
         """
-        base = f"/tmp/txn-rollback-{int(time.time())}"
+        base = f"{WORKSPACE_ROOT}/txn-rollback-{int(time.time())}"
         paths = [f"{base}-{i}.txt" for i in range(2)]
 
         txn_id = _begin(auth_headers)
@@ -187,7 +193,7 @@ class TestAtomicityOnFailure:
         Stage 4 valid writes + 1 write to an invalid (read-only) path.
         Commit. Assert commit fails. Assert valid files NOT written.
         """
-        base = f"/tmp/txn-atomic-{int(time.time())}"
+        base = f"{WORKSPACE_ROOT}/txn-atomic-{int(time.time())}"
         valid_paths = [f"{base}-{i}.txt" for i in range(4)]
 
         txn_id = _begin(auth_headers)
@@ -230,7 +236,7 @@ class TestConflictDetection:
         Agent B (outside txn) writes same file directly.
         Agent A commits. Assert conflict detected, ops not applied.
         """
-        path = f"/tmp/txn-conflict-{int(time.time())}.txt"
+        path = f"{WORKSPACE_ROOT}/txn-conflict-{int(time.time())}.txt"
 
         # Agent A begins transaction
         txn_id = _begin(auth_headers)
@@ -302,8 +308,8 @@ class TestTimeoutAutoRollback:
                 f"this test take too long; set TXN_TIMEOUT_SECONDS=10 to run it"
             )
 
-        path0 = f"/tmp/txn-timeout-0-{int(time.time())}.txt"
-        path1 = f"/tmp/txn-timeout-1-{int(time.time())}.txt"
+        path0 = f"{WORKSPACE_ROOT}/txn-timeout-0-{int(time.time())}.txt"
+        path1 = f"{WORKSPACE_ROOT}/txn-timeout-1-{int(time.time())}.txt"
 
         txn_id = _begin(auth_headers)
         _stage(auth_headers, txn_id, "fs_write", {"path": path0, "content": "timed out"})
@@ -337,7 +343,7 @@ class TestIsolation:
         While txn is open, read the file — should see pre-transaction content
         (or 404 if it didn't exist). Agent A commits. Then file is visible.
         """
-        path = f"/tmp/txn-isolation-{int(time.time())}.txt"
+        path = f"{WORKSPACE_ROOT}/txn-isolation-{int(time.time())}.txt"
         original = "original content before transaction"
 
         # Write original content

@@ -19,6 +19,7 @@ v0.6.0 adds:
 """
 
 import asyncio
+import hmac
 import json
 import logging
 import os
@@ -190,7 +191,7 @@ def _verify_token(authorization: Optional[str]) -> None:
     expected = config.get("api", {}).get("token", "")
     if not expected:
         return
-    if not authorization or authorization != f"Bearer {expected}":
+    if not authorization or not hmac.compare_digest(authorization, f"Bearer {expected}"):
         raise HTTPException(status_code=401, detail="Unauthorized")
 
 
@@ -201,11 +202,34 @@ def _verify_any_token(authorization: Optional[str]) -> None:
     token = authorization.removeprefix("Bearer ").strip()
     config = _load_config()
     master = config.get("api", {}).get("token", "")
-    if token == master:
+    if master and hmac.compare_digest(token, master):
         return
     if _registry and _registry.authenticate(token):
         return
     raise HTTPException(status_code=401, detail="Unauthorized")
+
+
+# Filesystem endpoints (and shell cwd) are confined to these roots. Anything
+# outside — including the credentials/config mounts — is unreachable via the
+# API regardless of ".." or symlink tricks, since _safe_path resolves first.
+# The /agentOS/* defaults are always allowed (matches the container layout);
+# AGENTOS_WORKSPACE_ROOT / AGENTOS_MEMORY_PATH (already used by registry.py
+# and memory/manager.py to relocate those dirs, e.g. in CI) are honored as
+# additional roots when set, so a relocated deployment stays confined to
+# wherever it actually put its data instead of a path nothing writes to.
+_FS_ALLOWED_ROOTS = [Path("/agentOS/workspace"), Path("/agentOS/memory"), Path("/agentOS/design")]
+for _env_root in ("AGENTOS_WORKSPACE_ROOT", "AGENTOS_MEMORY_PATH"):
+    if os.getenv(_env_root):
+        _FS_ALLOWED_ROOTS.append(Path(os.environ[_env_root]))
+
+
+def _safe_path(raw: str) -> Path:
+    if not raw or len(raw) > 512 or "\n" in raw:
+        raise HTTPException(status_code=400, detail=f"Invalid path: {(raw or '')[:120]}")
+    p = Path(raw).resolve()
+    if not any(p == root or root in p.parents for root in _FS_ALLOWED_ROOTS):
+        raise HTTPException(status_code=403, detail=f"Path outside permitted roots: {raw}")
+    return p
 
 
 def _now() -> str:
@@ -222,7 +246,7 @@ def _agent_from_token(authorization: Optional[str]):
     token = authorization.removeprefix("Bearer ").strip()
     config = _load_config()
     master = config.get("api", {}).get("token", "")
-    if token == master:
+    if master and hmac.compare_digest(token, master):
         return _registry.get("root")
     return _registry.authenticate(token)
 
@@ -239,9 +263,17 @@ async def _shell(command: str, cwd: str = None, timeout: int = 30) -> dict:
 
 app = FastAPI(title="AgentOS API", version="0.7.0", docs_url="/docs")
 
+# CORS is browser-only defense in depth — every route also requires a bearer
+# token (see _verify_any_token / _resolve_agent). A wildcard origin combined
+# with bearer auth on a localhost service lets any page the operator visits
+# make authenticated-looking cross-origin requests, so the allowlist is
+# explicit and empty by default. Set HOLLOW_CORS_ORIGINS (comma-separated)
+# only for known trusted origins (e.g. a locally-served browser dashboard).
+_CORS_ORIGINS = [o.strip() for o in os.environ.get("HOLLOW_CORS_ORIGINS", "").split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_CORS_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -847,9 +879,7 @@ async def run_command(req: ShellRequest, authorization: Optional[str] = Header(N
 @app.get("/fs/list")
 async def fs_list(path: str = "/agentOS/workspace", authorization: Optional[str] = Header(None)):
     _verify_any_token(authorization)
-    if len(path) > 512 or "\n" in path:
-        raise HTTPException(status_code=400, detail=f"Invalid path: {path[:120]}")
-    p = Path(path)
+    p = _safe_path(path)
     if not p.exists():
         raise HTTPException(status_code=404, detail=f"Path not found: {path}")
     entries = []
@@ -868,9 +898,7 @@ async def fs_list(path: str = "/agentOS/workspace", authorization: Optional[str]
 @app.get("/fs/read")
 async def fs_read(path: str, meta: bool = False, authorization: Optional[str] = Header(None)):
     _verify_any_token(authorization)
-    if len(path) > 512 or "\n" in path:
-        raise HTTPException(status_code=400, detail=f"Invalid path (too long or contains newline): {path[:120]}")
-    p = Path(path)
+    p = _safe_path(path)
     if not p.exists():
         raise HTTPException(status_code=404, detail=f"File not found: {path}")
     if not p.is_file():
@@ -887,24 +915,24 @@ async def fs_read(path: str, meta: bool = False, authorization: Optional[str] = 
 @app.post("/fs/write")
 async def fs_write(req: WriteRequest, authorization: Optional[str] = Header(None)):
     _verify_any_token(authorization)
+    p = _safe_path(req.path)
     # Audit-protected paths — no agent may overwrite via API.
     # Match on filename only so the check is robust across different memory path configs.
     from agents.audit import AUDIT_PROTECTED_PATHS
     _protected_names = {Path(p).name for p in AUDIT_PROTECTED_PATHS}
-    if Path(req.path).name in _protected_names:
+    if p.name in _protected_names:
         raise HTTPException(status_code=403,
                             detail="Path is audit-protected and cannot be overwritten via API")
 
     # v1.2.0: if txn_id provided, stage instead of writing immediately
     if req.txn_id and _txn_coordinator:
         result = _txn_coordinator.stage(
-            req.txn_id, "fs_write", {"path": req.path, "content": req.content}
+            req.txn_id, "fs_write", {"path": str(p), "content": req.content}
         )
         if "error" in result:
             raise HTTPException(status_code=400, detail=result["error"])
         return {"staged": True, "txn_id": req.txn_id, **result}
 
-    p = Path(req.path)
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(req.content)
     log_action("file_write", {"path": req.path, "size": len(req.content)})
@@ -928,7 +956,7 @@ async def fs_write(req: WriteRequest, authorization: Optional[str] = Header(None
 async def fs_edit(req: EditRequest, authorization: Optional[str] = Header(None)):
     """Replace old_string with new_string in a file. Fails if old_string not found."""
     _verify_any_token(authorization)
-    p = Path(req.path)
+    p = _safe_path(req.path)
     if not p.exists():
         raise HTTPException(status_code=404, detail=f"File not found: {req.path}")
     content = p.read_text(encoding="utf-8", errors="replace")
@@ -949,7 +977,11 @@ async def fs_batch_read(req: BatchReadRequest, authorization: Optional[str] = He
     _verify_any_token(authorization)
     results = {}
     for path in req.paths:
-        p = Path(path)
+        try:
+            p = _safe_path(path)
+        except HTTPException as e:
+            results[path] = {"ok": False, "error": e.detail}
+            continue
         if p.exists() and p.is_file():
             try:
                 results[path] = {"content": p.read_text(errors="replace"), "ok": True}
@@ -2614,7 +2646,8 @@ function escHtml(s) {
 }
 
 function connect() {
-  const es = new EventSource('/stream/events');
+  const streamToken = '__STREAM_TOKEN__';
+  const es = new EventSource('/stream/events' + (streamToken ? '?token=' + encodeURIComponent(streamToken) : ''));
   es.onopen = () => { dot.className=''; statusText.textContent='live'; };
   es.onmessage = e => { if (e.data) addEntry(e.data); };
   es.onerror = () => {
@@ -2629,15 +2662,29 @@ connect();
 </html>"""
 
 
+def _verify_stream_token(token: Optional[str]) -> None:
+    """
+    /stream and /stream/events are plain browser navigation + EventSource —
+    neither can set an Authorization header, so auth travels as a `token`
+    query param instead and is checked with the same rule as every other
+    endpoint (_verify_any_token). This route was previously reachable with
+    NO auth at all and streamed every agent's live execution chain
+    (capability names, stdout/stderr) to anyone who could reach the port.
+    """
+    _verify_any_token(f"Bearer {token}" if token else None)
+
+
 @app.get("/stream", response_class=HTMLResponse, include_in_schema=False)
-async def stream_page():
+async def stream_page(token: Optional[str] = Query(None)):
     """Mobile-optimized live agent feed."""
-    return HTMLResponse(content=_STREAM_HTML)
+    _verify_stream_token(token)
+    return HTMLResponse(content=_STREAM_HTML.replace("__STREAM_TOKEN__", token or ""))
 
 
 @app.get("/stream/events", include_in_schema=False)
-async def stream_events():
+async def stream_events(token: Optional[str] = Query(None)):
     """SSE endpoint — pushes live execution chain entries for all agents."""
+    _verify_stream_token(token)
 
     async def generator():
         # Track read position per agent

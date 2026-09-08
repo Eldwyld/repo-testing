@@ -20,12 +20,17 @@ Usage:
 """
 
 import json
+import logging
 import os
 import random
 import threading
 import time
 from pathlib import Path
 from typing import Optional
+
+from agents.atomic_io import atomic_write_text, load_json_fail_closed
+
+log = logging.getLogger("agentos.agent_identity")
 
 IDENTITY_PATH = Path(os.getenv("AGENTOS_MEMORY_PATH", "/agentOS/memory")) / "identity"
 _lock = threading.RLock()
@@ -701,11 +706,8 @@ class AgentIdentity:
 
     def _save(self) -> None:
         with _lock:
-            profile_dir = IDENTITY_PATH / self.agent_id
-            profile_dir.mkdir(parents=True, exist_ok=True)
-            (profile_dir / "profile.json").write_text(
-                json.dumps(self._data, indent=2)
-            )
+            profile_path = IDENTITY_PATH / self.agent_id / "profile.json"
+            atomic_write_text(profile_path, json.dumps(self._data, indent=2))
 
     # ── Factory ──────────────────────────────────────────────────────────────
 
@@ -716,12 +718,19 @@ class AgentIdentity:
             IDENTITY_PATH.mkdir(parents=True, exist_ok=True)
             profile_path = IDENTITY_PATH / agent_id / "profile.json"
 
-            if profile_path.exists():
-                try:
-                    data = json.loads(profile_path.read_text())
-                    return cls(data)
-                except Exception:
-                    pass  # corrupt — recreate below
+            # Fails CLOSED on corruption: the bad file is quarantined and
+            # logged at ERROR rather than silently discarded, so a torn
+            # write is visible instead of quietly re-rolling the agent's
+            # identity (name/traits/domains) under an unchanged agent_id —
+            # which contradicts "identity persists across restarts".
+            data, corrupt = load_json_fail_closed(profile_path)
+            if data is not None:
+                return cls(data)
+            if corrupt:
+                log.error(
+                    "AgentIdentity.load_or_create(%s): corrupt profile.json — "
+                    "quarantined; re-rolling identity below", agent_id
+                )
 
             # Assign a unique name
             name = cls._claim_name(agent_id)

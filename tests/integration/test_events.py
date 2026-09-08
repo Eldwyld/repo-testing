@@ -9,6 +9,7 @@ Run:
     PYTHONPATH=. pytest tests/integration/test_events.py -v -m integration
 """
 
+import os
 import time
 import pytest
 import requests
@@ -16,6 +17,11 @@ import requests
 pytestmark = pytest.mark.integration
 
 API_URL = "http://localhost:7777"
+
+# fs/write is confined to the deployment's actual workspace root
+# (api/server.py:_FS_ALLOWED_ROOTS) — write test scratch files there, not
+# to an arbitrary /tmp path the API can no longer reach.
+WORKSPACE_ROOT = os.getenv("AGENTOS_WORKSPACE_ROOT", "/agentOS/workspace")
 
 
 def _api_reachable() -> bool:
@@ -586,7 +592,7 @@ class TestFileWrittenEvent:
         t0 = time.time()
         sub_id = _subscribe(auth_headers, "file.written")
 
-        test_path = f"/tmp/agentos_test_event_{int(time.time())}.txt"
+        test_path = f"{WORKSPACE_ROOT}/agentos_test_event_{int(time.time())}.txt"
         r = requests.post(
             f"{api_url}/fs/write",
             json={"path": test_path, "content": "event test content"},

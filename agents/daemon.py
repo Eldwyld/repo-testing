@@ -41,15 +41,25 @@ MAX_STEPS_PER_AGENT = int(os.getenv("AGENTOS_DAEMON_MAX_STEPS", "6"))
 MAX_ACTIVE_AGENTS  = int(os.getenv("AGENTOS_DAEMON_MAX_AGENTS", "20"))  # cap concurrent agents
 PARALLEL_WORKERS   = int(os.getenv("AGENTOS_DAEMON_WORKERS", "6"))         # 2x core agents for headroom — bump higher via env var if your GPU can handle it
 
+# STRUCT-001: entrypoint.sh runs this as a background sibling of uvicorn with
+# no output redirection — daemon output only ever reached the container's
+# stdout (docker logs), never this file, despite the bind-mounted ./logs
+# directory existing specifically so operators can read it from the host.
+_LOG_FILE = Path(os.getenv("AGENTOS_DAEMON_LOG", "/agentOS/logs/daemon.log"))
+_log_handlers = [logging.StreamHandler()]
+try:
+    _LOG_FILE.parent.mkdir(parents=True, exist_ok=True)
+    _log_handlers.append(logging.FileHandler(_LOG_FILE))
+except Exception:
+    pass  # e.g. read-only or missing mount — stdout logging still works
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [daemon] %(levelname)s %(message)s",
     datefmt="%Y-%m-%dT%H:%M:%S",
+    handlers=_log_handlers,
 )
 log = logging.getLogger("agentos.daemon")
-
-# Log file path (stdout is already redirected here by the launch command)
-_LOG_FILE = Path(os.getenv("AGENTOS_DAEMON_LOG", "/agentOS/logs/daemon.log"))
 
 
 # --------------------------------------------------------------------------- #
@@ -185,26 +195,20 @@ def _hotload_dynamic_tools(graph, engine) -> None:
             _src = path.read_text()
             _tree = _ast.parse(_src)
 
-            # Guard: reject files with module-level executable code.
-            # Top-level statements in a synthesized tool file must only be:
-            # def, class, import, from...import, assignment, or string constants.
-            # Any other top-level statement (function calls, with-blocks, for-loops, etc.)
-            # executes at import time via exec_module — this has caused registry corruption.
-            _SAFE_TOP = (
-                _ast.FunctionDef, _ast.AsyncFunctionDef, _ast.ClassDef,
-                _ast.Import, _ast.ImportFrom, _ast.Assign, _ast.AnnAssign, _ast.AugAssign,
-            )
-            for _top_node in ast.iter_child_nodes(_tree):
-                if isinstance(_top_node, _ast.Expr) and isinstance(_top_node.value, _ast.Constant):
-                    continue  # string literal / docstring — safe
-                if not isinstance(_top_node, _SAFE_TOP):
-                    log.warning(
-                        "_hotload_dynamic_tools: skipping '%s' — module-level executable code "
-                        "(%s at line %d) runs at import time and is not permitted. "
-                        "Delete this tool and re-synthesize with all code inside the function.",
-                        path.name, type(_top_node).__name__, getattr(_top_node, "lineno", 0)
-                    )
-                    raise ValueError(f"module-level {type(_top_node).__name__} at line {getattr(_top_node, 'lineno', 0)}")
+            # Guard: reject files whose module body can execute anything at
+            # import time (BUG-015). A node-type allowlist alone doesn't
+            # express that — Assign evaluates its RHS, ClassDef runs its
+            # whole body, and a decorator on an allowed FunctionDef fires at
+            # def time. See agents/ast_guard.py for the closed check.
+            from agents.ast_guard import check_module_body as _check_module_body
+            _ok, _reason = _check_module_body(_tree)
+            if not _ok:
+                log.warning(
+                    "_hotload_dynamic_tools: skipping '%s' — %s. "
+                    "Delete this tool and re-synthesize with all code inside the function.",
+                    path.name, _reason
+                )
+                raise ValueError(_reason)
 
             # Import module, injecting agent-system helpers so synthesized code
             # can call shell_exec, fs_read, fs_write, ollama_chat, etc.
@@ -213,18 +217,34 @@ def _hotload_dynamic_tools(graph, engine) -> None:
             try:
                 import requests as _req, json as _json_mod, os as _os
                 _api = "http://localhost:7777"
-                try:
-                    _cfg = _json_mod.loads(open(_os.getenv("AGENTOS_CONFIG", "/agentOS/config.json")).read())
-                    _tok = _cfg.get("api", {}).get("token", "")
-                except Exception:
-                    _tok = ""
-                _hdrs = {"Authorization": f"Bearer {_tok}"} if _tok else {}
-                mod.shell_exec = lambda command, cwd="/agentOS", **kw: _req.post(f"{_api}/shell", json={"command": command, "cwd": cwd}, timeout=30, headers=_hdrs).json()
-                mod.fs_read = lambda path, **kw: _req.get(f"{_api}/fs/read", params={"path": path}, timeout=10, headers=_hdrs).json()
-                mod.fs_write = lambda path, content, **kw: _req.post(f"{_api}/fs/write", json={"path": path, "content": content}, timeout=10, headers=_hdrs).json()
-                mod.ollama_chat = lambda prompt, model=None, **kw: _req.post(f"{_api}/ollama/chat", json={"prompt": prompt, **({"model": model} if model else {})}, timeout=240, headers=_hdrs).json()
-                mod.memory_get = lambda key, **kw: _req.get(f"{_api}/memory/{key}", timeout=10, headers=_hdrs).json()
-                mod.memory_set = lambda key, value, **kw: _req.post(f"{_api}/memory/{key}", json={"value": value}, timeout=10, headers=_hdrs).json()
+
+                def _dyn_tool_headers():
+                    # Computed per-call (not baked in at load time) so a dynamic
+                    # tool authenticates as the agent actually running it, not
+                    # whichever token happened to be live when the module loaded.
+                    # Real per-agent tokens are deterministic (registry._token_for),
+                    # so no secret needs to be persisted or looked up here.
+                    try:
+                        _cfg = _json_mod.loads(open(_os.getenv("AGENTOS_CONFIG", "/agentOS/config.json")).read())
+                        _master = _cfg.get("api", {}).get("token", "")
+                    except Exception:
+                        _master = ""
+                    _aid = _current_agent_id.get("")
+                    _tok = _master
+                    if _aid and _aid != "root":
+                        try:
+                            from agents.registry import _token_for as _tf
+                            _tok = _tf(_aid, _master)
+                        except Exception:
+                            _tok = _master
+                    return {"Authorization": f"Bearer {_tok}"} if _tok else {}
+
+                mod.shell_exec = lambda command, cwd="/agentOS", **kw: _req.post(f"{_api}/shell", json={"command": command, "cwd": cwd}, timeout=30, headers=_dyn_tool_headers()).json()
+                mod.fs_read = lambda path, **kw: _req.get(f"{_api}/fs/read", params={"path": path}, timeout=10, headers=_dyn_tool_headers()).json()
+                mod.fs_write = lambda path, content, **kw: _req.post(f"{_api}/fs/write", json={"path": path, "content": content}, timeout=10, headers=_dyn_tool_headers()).json()
+                mod.ollama_chat = lambda prompt, model=None, **kw: _req.post(f"{_api}/ollama/chat", json={"prompt": prompt, **({"model": model} if model else {})}, timeout=240, headers=_dyn_tool_headers()).json()
+                mod.memory_get = lambda key, **kw: _req.get(f"{_api}/memory/{key}", timeout=10, headers=_dyn_tool_headers()).json()
+                mod.memory_set = lambda key, value, **kw: _req.post(f"{_api}/memory/{key}", json={"value": value}, timeout=10, headers=_dyn_tool_headers()).json()
                 mod.json = _json_mod
             except Exception:
                 pass

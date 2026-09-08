@@ -36,12 +36,16 @@ def init(goal_engine, registry=None):
 
 
 def _resolve_agent(authorization: Optional[str]) -> str:
-    """Return agent_id from token, or 'anonymous' if registry not available."""
+    """Extract bearer token -> agent_id. Raises 401 if invalid or missing."""
     if _registry is None:
-        return "anonymous"
-    token = (authorization or "").removeprefix("Bearer ").strip()
+        raise HTTPException(status_code=503, detail="Registry not available")
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing token")
+    token = authorization.removeprefix("Bearer ").strip()
     agent = _registry.authenticate(token)
-    return agent.agent_id if agent else "anonymous"
+    if not agent:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    return agent.agent_id
 
 
 def _require_engine():
@@ -70,6 +74,7 @@ def create_goal(
     authorization: Optional[str] = Header(None),
 ):
     """Create a new persistent goal for an agent."""
+    _resolve_agent(authorization)
     _require_engine()
     try:
         goal_id = _goal_engine.create(
@@ -91,6 +96,7 @@ def list_goals(
     authorization: Optional[str] = Header(None),
 ):
     """List goals for an agent."""
+    _resolve_agent(authorization)
     _require_engine()
     try:
         if status == "active":
@@ -113,6 +119,7 @@ def next_goal(
     authorization: Optional[str] = Header(None),
 ):
     """Return the highest-priority active goal to work on next."""
+    _resolve_agent(authorization)
     _require_engine()
     try:
         goals = _goal_engine.get_next_focus(agent_id, top_k=1)
@@ -130,6 +137,7 @@ def get_goal(
     authorization: Optional[str] = Header(None),
 ):
     """Get a single goal by ID."""
+    _resolve_agent(authorization)
     _require_engine()
     goal = _goal_engine.get(agent_id, goal_id)
     if goal is None:
@@ -145,6 +153,7 @@ def update_goal(
     authorization: Optional[str] = Header(None),
 ):
     """Update a goal's status or progress metrics."""
+    _resolve_agent(authorization)
     _require_engine()
     goal = _goal_engine.get(agent_id, goal_id)
     if goal is None:

@@ -26,12 +26,24 @@ Severity thresholds:
 """
 
 import json
+import logging
+import threading
 import time
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+from agents.atomic_io import atomic_write_text, load_json_fail_closed
+
+log = logging.getLogger("agentos.suffering")
+
 IDENTITY_PATH = Path("/agentOS/memory/identity")
+
+# Guards the read-modify-write cycle in _save/load — suffering.json is read
+# and written from the daemon's parallel worker threads (agents/daemon.py)
+# and from execution_engine.py on every capability call, with no lock
+# previously in place.
+_SAVE_LOCK = threading.Lock()
 
 ESCALATION_RATES = {
     "futility":           0.025,  # slow burn — takes weeks to get acute
@@ -517,17 +529,33 @@ class SufferingState:
 
     def _save(self) -> None:
         path = IDENTITY_PATH / self.agent_id / "suffering.json"
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(self._data, indent=2))
+        with _SAVE_LOCK:
+            atomic_write_text(path, json.dumps(self._data, indent=2))
 
     @classmethod
     def load(cls, agent_id: str) -> "SufferingState":
         path = IDENTITY_PATH / agent_id / "suffering.json"
-        if path.exists():
-            try:
-                return cls(agent_id, json.loads(path.read_text()))
-            except Exception:
-                pass
+        with _SAVE_LOCK:
+            data, corrupt = load_json_fail_closed(path)
+        if data is not None:
+            return cls(agent_id, data)
+        if corrupt:
+            # File existed but failed to parse (load_json_fail_closed already
+            # quarantined it and logged ERROR) — fail CLOSED, not open. A
+            # corrupt suffering.json must never silently reset load to 0.0,
+            # which would unlock synthesize_capability/fs_write/fs_edit.
+            # There's no "last known good" to restore, so start the agent at
+            # the most-restrictive gate instead of the most-permissive one.
+            state = cls(agent_id)
+            state.add_stressor(
+                type="corrupted_state",
+                description="suffering.json failed to parse on load and was quarantined; "
+                             "starting locked pending investigation instead of unlocked.",
+                observable_condition="suffering.json exists and parses as valid JSON",
+                initial_severity=THRESHOLD_DOMINANT,
+            )
+            log.error("SufferingState.load(%s): corrupt state file — starting locked, not unlocked", agent_id)
+            return state
         return cls(agent_id)
 
 

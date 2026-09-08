@@ -43,10 +43,37 @@ API_BASE = os.getenv("AGENTOS_API_BASE", "http://localhost:7777")
 # --------------------------------------------------------------------------- #
 
 def _token() -> str:
+    """
+    Bearer token for outbound API calls. When running inside an agent's
+    execution context, this resolves to that agent's OWN token rather than
+    the master token — agent tokens are deterministic
+    (registry._token_for(agent_id, master_secret)), so no lookup or
+    persisted secret is needed, only the agent_id and the master secret
+    this process already has. This is what makes the server's per-agent
+    capability/budget/rate-limit/workspace checks (api/server.py) actually
+    apply instead of every call authenticating as root.
+    """
     try:
-        return json.loads(CONFIG_PATH.read_text())["api"]["token"]
+        master = json.loads(CONFIG_PATH.read_text())["api"]["token"]
     except Exception:
-        return ""
+        master = ""
+
+    agent_id = os.getenv("AGENTOS_AGENT_ID", "")
+    if not agent_id:
+        try:
+            import agents.daemon as _dm
+            agent_id = _dm._current_agent_id.get("")
+        except Exception:
+            agent_id = ""
+
+    if agent_id and agent_id != "root":
+        try:
+            from agents.registry import _token_for
+            return _token_for(agent_id, master)
+        except Exception:
+            pass
+
+    return master
 
 
 def _call(method: str, path: str, **kwargs) -> dict:
@@ -536,29 +563,21 @@ def synthesize_capability(name: str = "", description: str = "",
             return {"ok": False, "error": f"implementation has syntax error: {e}"}
 
         # Reject module-level executable statements — they run at hotload import time,
-        # not when the tool is called. Only def/class/import/assignments are safe at top level.
-        _SAFE_MODULE_NODES = (
-            _ast.FunctionDef, _ast.AsyncFunctionDef, _ast.ClassDef,
-            _ast.Import, _ast.ImportFrom, _ast.Assign, _ast.AnnAssign,
-            _ast.AugAssign, _ast.Expr,  # Expr covers docstrings/constants
-        )
+        # not when the tool is called. Delegates to the same closed check
+        # agents/daemon.py's hotloader uses (agents/ast_guard.py) so the two
+        # gates can't drift apart again — a node-type allowlist alone doesn't
+        # express "no side effects at import" (Assign evaluates its RHS,
+        # ClassDef runs its whole body, a decorator fires at def time).
         _full_tree = _ast.parse(implementation) if implementation.strip().startswith("def ") else None
         if _full_tree:
-            for _top in _ast.iter_child_nodes(_full_tree):
-                if not isinstance(_top, _SAFE_MODULE_NODES):
-                    return {"ok": False, "error": (
-                        f"implementation contains module-level executable code "
-                        f"({type(_top).__name__} at line {getattr(_top, 'lineno', '?')}). "
-                        "All code must be inside a function — nothing at module scope except "
-                        "imports and function/class definitions."
-                    )}
-                # Expr at module level is only safe if it's a string literal (docstring)
-                if isinstance(_top, _ast.Expr) and not isinstance(_top.value, _ast.Constant):
-                    return {"ok": False, "error": (
-                        "implementation contains a module-level expression (e.g. a function call "
-                        "or statement outside any def). This runs at import time and is not allowed. "
-                        "Put all logic inside the function."
-                    )}
+            from agents.ast_guard import check_module_body as _check_module_body
+            _ok, _reason = _check_module_body(_full_tree)
+            if not _ok:
+                return {"ok": False, "error": (
+                    f"implementation contains module-level executable code: {_reason}. "
+                    "All code must be inside a function — nothing at module scope except "
+                    "imports and function/class definitions."
+                )}
 
         # AST-level checks for common LLM failures
         for node in _ast.walk(tree):
