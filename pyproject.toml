@@ -1,41 +1,15 @@
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
 [project]
-name = "hollow-sdk"
-version = "0.6.0"
-description = "Python SDK for Hollow AgentOS — a structured JSON-native environment for AI agents"
+name = "hollow"
+version = "2.0.0"
+description = "Agents that choose their own goals, gated by red-green CI. Git is the substrate."
 readme = "README.md"
 license = {text = "MIT"}
-requires-python = ">=3.12"
-keywords = ["agents", "llm", "ai", "mcp", "token-efficiency", "agentos"]
-classifiers = [
-    "Development Status :: 4 - Beta",
-    "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3.12",
-    "Topic :: Software Development :: Libraries",
-    "Topic :: Scientific/Engineering :: Artificial Intelligence",
-]
-dependencies = [
-    "httpx>=0.28.0",
-]
+requires-python = ">=3.11"
+dependencies = []
 
-[project.urls]
-Homepage = "https://github.com/ninjahawk/hollow-agentOS"
-Repository = "https://github.com/ninjahawk/hollow-agentOS"
-Issues = "https://github.com/ninjahawk/hollow-agentOS/issues"
-
-[tool.hatch.build.targets.wheel]
-packages = ["sdk"]
-
-[tool.hatch.build.targets.wheel.sources]
-"sdk" = "hollow"
+[project.optional-dependencies]
+test = ["pytest>=8"]
 
 [tool.pytest.ini_options]
-markers = [
-    "integration: marks tests as integration tests requiring a live server",
-    "slow: marks tests as slow (e.g. timeout tests taking 65s+)",
-    "flaky_under_load: marks tests that are sensitive to system load/timing",
-]
+testpaths = ["tests"]
+addopts = "-p no:cacheprovider"

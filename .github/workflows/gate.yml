@@ -1,0 +1,92 @@
+# The gate. Executes agent-written code, so it holds NO credentials.
+#
+# Triggered two ways:
+#   * pull_request from a same-repo branch (a human opening or updating one)
+#   * workflow_dispatch from the cycle job (PRs opened with GITHUB_TOKEN do
+#     not fire pull_request events, so the cycle dispatches this explicitly
+#     and later reads the verdict artifact back as data).
+#
+# Never use pull_request_target here: that would run a privileged token
+# against untrusted code, which is the exact shape of the mistake.
+name: gate
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      pr:
+        description: pull request number
+        required: true
+      head_sha:
+        description: head commit to evaluate
+        required: true
+
+permissions: {}
+
+concurrency:
+  group: gate-${{ github.event.inputs.head_sha || github.event.pull_request.head.sha }}
+  cancel-in-progress: false
+
+jobs:
+  guard:
+    name: path guard
+    runs-on: ubuntu-latest
+    permissions: {}
+    outputs:
+      head: ${{ steps.refs.outputs.head }}
+    steps:
+      - name: Check out trusted code (base branch)
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Resolve head
+        id: refs
+        run: |
+          HEAD="${{ github.event.inputs.head_sha || github.event.pull_request.head.sha }}"
+          git fetch --no-tags origin "$HEAD"
+          echo "head=$HEAD" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Only workspace/tools and workspace/tests may change
+        run: python -m hollow guard --base origin/main --head "${{ steps.refs.outputs.head }}"
+
+  evaluate:
+    name: red-green-red + mutation (sandbox)
+    needs: guard
+    runs-on: ubuntu-latest
+    permissions: {}
+    timeout-minutes: 20
+    steps:
+      - name: Check out trusted code (base branch)
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Fetch head
+        run: git fetch --no-tags origin "${{ needs.guard.outputs.head }}"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install --quiet pytest
+      - name: Evaluate
+        id: gate
+        env:
+          # Belt and braces: nothing in this job should ever see a token.
+          GITHUB_TOKEN: ""
+        run: |
+          set +e
+          python -m hollow gate --base origin/main --head "${{ needs.guard.outputs.head }}" --out gate-result.json
+          echo "exit=$?" >> "$GITHUB_OUTPUT"
+      - name: Upload verdict
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate-${{ needs.guard.outputs.head }}
+          path: gate-result.json
+          retention-days: 30
+      - name: Fail the check if rejected
+        run: exit ${{ steps.gate.outputs.exit }}

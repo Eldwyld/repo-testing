@@ -1,0 +1,117 @@
+# The heartbeat, replaced by a cadence.
+#
+# Two jobs. `observe` runs the merged workspace suite (agent-written code)
+# and therefore has no credentials. `act` is the trusted job: it reads the
+# observe result as data, calls the model with keys from secrets, opens
+# PRs, merges or closes them from gate verdicts, and commits state.
+#
+# Off-peak minutes: scheduled runs are delayed at the top of the hour.
+name: cycle
+
+on:
+  schedule:
+    - cron: "7,27,47 * * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: call the model but do not push, open PRs or merge
+        type: boolean
+        default: false
+
+permissions: {}
+
+concurrency:
+  group: hollow-cycle
+  cancel-in-progress: false
+
+jobs:
+  observe:
+    name: observe (sandbox)
+    runs-on: ubuntu-latest
+    permissions: {}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install --quiet pytest
+      - name: Run the workspace suite
+        env:
+          GITHUB_TOKEN: ""
+        run: python -m hollow observe --out truth.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: truth
+          path: truth.json
+          retention-days: 7
+
+  act:
+    name: act (trusted)
+    needs: observe
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: write
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v4
+        with:
+          name: truth
+      - name: Configure git identity
+        run: |
+          git config user.name "hollow-cycle"
+          git config user.email "hollow-cycle@users.noreply.github.com"
+      - name: Run the cycle
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        run: |
+          python -m hollow cycle --truth truth.json ${{ inputs.dry_run == true && '--dry-run' || '' }}
+      - name: Commit state to main
+        if: ${{ inputs.dry_run != true }}
+        run: |
+          git add state workspace/tools/registry.json site
+          if git diff --cached --quiet; then
+            echo "no state changes"
+          else
+            git commit -q -m "cycle: state after run ${{ github.run_number }}"
+            for i in 1 2 3 4; do
+              git pull -q --rebase origin main && git push origin HEAD:main && break
+              sleep $((i * 5))
+            done
+          fi
+      - name: Prepare Pages
+        if: ${{ inputs.dry_run != true }}
+        uses: actions/configure-pages@v5
+        continue-on-error: true
+      - name: Upload dashboard
+        if: ${{ inputs.dry_run != true }}
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - name: Deploy dashboard
+        if: ${{ inputs.dry_run != true }}
+        id: deploy
+        uses: actions/deploy-pages@v4
+        continue-on-error: true

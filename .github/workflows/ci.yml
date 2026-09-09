@@ -1,224 +1,31 @@
-name: CI
+# Tests for Hollow itself (the system, not the agents' workspace).
+# Includes the acceptance bar from the rebuild spec, §8.
+name: ci
 
 on:
   push:
-    branches:
-      - main
-      - dev
+    branches: [main]
+    paths-ignore: ["state/**", "site/**", "workspace/**"]
   pull_request:
-    branches:
-      - main
-      - dev
+    branches: [main]
+    paths-ignore: ["state/**", "site/**", "workspace/**"]
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+permissions:
+  contents: read
 
 jobs:
-
-  # ---------------------------------------------------------------------------
-  # Job 1: Unit Tests
-  # ---------------------------------------------------------------------------
-  unit-tests:
-    name: Unit Tests
+  test:
     runs-on: ubuntu-latest
-
+    strategy:
+      matrix:
+        python: ["3.11", "3.12"]
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
         with:
-          python-version: "3.12"
-
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install pytest pytest-cov fastapi uvicorn httpx pydantic mcp numpy requests
-
-      - name: Run unit tests with coverage
-        run: |
-          PYTHONPATH=. pytest tests/unit/ -v --tb=short \
-            --cov=agents --cov=memory \
-            --cov-report=term-missing \
-            --cov-report=xml:coverage.xml
-
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v4
-        if: always()
+          persist-credentials: false
+      - uses: actions/setup-python@v5
         with:
-          name: coverage-report
-          path: coverage.xml
-          retention-days: 14
-
-  # ---------------------------------------------------------------------------
-  # Job 2: Integration Tests
-  # Ollama is NOT available in GitHub Actions. The API returns 503 for
-  # Ollama-dependent endpoints (semantic search, ollama/chat) and the
-  # integration tests handle 503 gracefully for those endpoints.
-  # ---------------------------------------------------------------------------
-  integration-tests:
-    name: Integration Tests
-    runs-on: ubuntu-latest
-    needs: unit-tests
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install pytest fastapi uvicorn httpx pydantic mcp numpy requests
-
-      - name: Prepare CI config
-        run: |
-          if [ -f config.example.json ]; then
-            cp config.example.json config.json
-          else
-            cat > config.json <<'EOF'
-          {
-            "api": {
-              "host": "0.0.0.0",
-              "port": 7777,
-              "token": "ci-test-token-replace-in-production"
-            },
-            "memory": {
-              "max_session_log_entries": 10000
-            },
-            "workspace": {
-              "root": "/tmp/hollow-workspace"
-            },
-            "ollama": {
-              "host": "http://localhost:11434",
-              "default_model": "mistral-nemo:12b",
-              "embed_model": "nomic-embed-text"
-            }
-          }
-          EOF
-          fi
-
-      - name: Start API server in background
-        run: |
-          mkdir -p /tmp/hollow-memory /tmp/hollow-workspace
-          cd api
-          PYTHONPATH=.. AGENTOS_CONFIG=../config.json AGENTOS_MEMORY_PATH=/tmp/hollow-memory AGENTOS_WORKSPACE_ROOT=/tmp/hollow-workspace TXN_TIMEOUT_SECONDS=10 python3 -m uvicorn server:app \
-            --host 0.0.0.0 --port 7777 --log-level warning &
-          echo "API_PID=$!" >> "$GITHUB_ENV"
-
-      - name: Wait for API to become healthy
-        run: |
-          timeout 30 bash -c 'until curl -sf http://localhost:7777/health; do sleep 1; done'
-
-      - name: Run integration tests
-        run: |
-          PYTHONPATH=. AGENTOS_MEMORY_PATH=/tmp/hollow-memory AGENTOS_WORKSPACE_ROOT=/tmp/hollow-workspace TXN_TIMEOUT_SECONDS=10 \
-            pytest tests/integration/ -v --tb=short -m integration
-
-      - name: Stop API server
-        if: always()
-        run: |
-          if [ -n "$API_PID" ]; then
-            kill "$API_PID" 2>/dev/null || true
-          fi
-
-  # ---------------------------------------------------------------------------
-  # Job 3: Docker smoke test (Linux)
-  # Catches yaml errors, mount/path issues, and Linux-specific compose problems
-  # that don't surface in unit/integration tests. Runs on a stock Ubuntu runner
-  # with no GPU and no Ollama — the API container should still come up and the
-  # healthcheck endpoint should respond. This is the smallest test that would
-  # have caught the issues @zenlan reported (#16, #17, #18) before release.
-  # ---------------------------------------------------------------------------
-  docker-smoke-test:
-    name: Docker smoke test (Linux, no GPU)
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Prepare config and required directories
-        run: |
-          cp config.example.json config.json
-          mkdir -p memory workspace logs design store/data memory/dynamic_tools
-
-      - name: Strip GPU block from compose (no GPU on the runner)
-        run: |
-          python3 -c "
-          # Line-based strip — the regex version dedented the next key
-          # ('restart: unless-stopped') and produced invalid YAML. See #16.
-          from pathlib import Path
-          p = Path('docker-compose.yml')
-          out = []
-          skipping = False
-          stripped = False
-          for line in p.read_text().splitlines():
-              if not stripped and not skipping and line.lstrip().startswith('# GPU acceleration'):
-                  skipping = True
-                  continue
-              if skipping:
-                  if 'capabilities: [gpu]' in line:
-                      skipping = False
-                      stripped = True
-                  continue
-              out.append(line)
-          p.write_text('\n'.join(out) + '\n')
-          "
-
-      - name: Build images locally (skip GHCR pulls)
-        run: |
-          docker build -t hollow-agentos-local .
-          docker build -t hollow-store-local -f store/Dockerfile .
-
-      - name: Start the stack
-        env:
-          HOLLOW_API_IMAGE: hollow-agentos-local
-          HOLLOW_STORE_IMAGE: hollow-store-local
-        run: docker compose up -d
-
-      - name: Wait for API healthcheck
-        run: |
-          for i in $(seq 1 60); do
-            if curl -sf http://localhost:7777/health > /dev/null; then
-              echo "API healthy after ${i}s"
-              exit 0
-            fi
-            sleep 1
-          done
-          echo "API never became healthy"
-          docker compose logs api --tail 200
-          exit 1
-
-      - name: Tear down
-        if: always()
-        run: docker compose down -v
-
-  # ---------------------------------------------------------------------------
-  # Job 4: Lint (never blocks the pipeline — always succeeds)
-  # ---------------------------------------------------------------------------
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Install pyflakes
-        run: pip install pyflakes
-
-      - name: Run pyflakes (warnings only, never fails)
-        run: |
-          python3 -m pyflakes agents/ api/ memory/ shell/ mcp/ 2>&1 \
-            | grep -v "__pycache__" || true
+          python-version: ${{ matrix.python }}
+      - run: pip install --quiet pytest
+      - run: git config --global user.email ci@hollow.invalid && git config --global user.name ci
+      - run: python -m pytest tests -q
