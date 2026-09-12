@@ -1,0 +1,705 @@
+/* ==========================================================================
+   Plant Magic — Component Layer
+
+   Framework-free CSS for the patterns observed on plantmagic.org. The live
+   site composes these out of Tailwind utilities plus inline styles; this file
+   names them so they can be reused without re-deriving the recipe each time.
+
+   Requires tokens/tokens.css.
+   ========================================================================== */
+
+@import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Cormorant:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap");
+
+/* --------------------------------------------------------------------------
+   1. BASE
+   -------------------------------------------------------------------------- */
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: var(--pm-font-body);
+  font-weight: 400;
+  font-size: var(--pm-text-sm);
+  line-height: var(--pm-leading-body);
+  color: var(--pm-gray-900);
+  background: var(--pm-surface-page);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  /* Inter stylistic sets the site enables: single-storey a, open g, l with tail. */
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+h1, h2, h3, h4, h5, h6,
+.pm-display {
+  font-family: var(--pm-font-display);
+  font-weight: 700;
+  letter-spacing: var(--pm-tracking-display);
+  margin: 0;
+}
+
+.pm-serif { font-family: var(--pm-font-serif); }
+.pm-mono  { font-family: var(--pm-font-mono); }
+
+/* Display scale. Heading level and size are decoupled on the live site —
+   pick the size that fits the hierarchy, not the tag. */
+.pm-h1 { font-size: var(--pm-text-5xl); line-height: 1; }
+.pm-h2 { font-size: var(--pm-text-4xl); line-height: 1.111; }
+.pm-h3 { font-size: var(--pm-text-2xl); line-height: 1.333; }
+.pm-h4 { font-size: var(--pm-text-xl);  line-height: 1.4; }
+
+@media (min-width: 48rem) {
+  .pm-h1 { font-size: var(--pm-text-7xl); }
+  .pm-h2 { font-size: var(--pm-text-5xl); }
+}
+
+.pm-lede {
+  font-family: var(--pm-font-body);
+  font-size: var(--pm-text-xl);
+  line-height: var(--pm-leading-relaxed);
+  color: var(--pm-body-on-light);
+  max-width: var(--pm-container-prose);
+}
+
+.pm-eyebrow {
+  font-family: var(--pm-font-body);
+  font-size: var(--pm-text-xs);
+  font-weight: 600;
+  letter-spacing: var(--pm-tracking-widest);
+  text-transform: uppercase;
+  color: var(--pm-action);
+}
+
+/* --------------------------------------------------------------------------
+   2. TEXT TREATMENTS
+   -------------------------------------------------------------------------- */
+
+/* The signature purple-to-teal text fill. */
+.pm-gradient-text {
+  background-image: var(--pm-gradient-text);
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+}
+
+/* Royal variant — heavier, for headings over light sections. */
+.pm-gradient-text--royal { background-image: var(--pm-gradient-text-royal); }
+
+/* Display headings over dark surfaces get a purple bloom rather than a shadow. */
+.pm-glow-text        { color: #fff; text-shadow: var(--pm-text-glow); }
+.pm-glow-text--hero  { color: #fff; text-shadow: var(--pm-text-glow-strong); }
+
+/* Link roles. Three of them, each a different hue — see docs/01-color.md. */
+.pm-link,
+.pm-link--primary   { color: var(--pm-action); text-decoration: none; transition: color var(--pm-duration-base); }
+.pm-link:hover,
+.pm-link--primary:hover { color: var(--pm-action-hover); }
+
+.pm-link--secondary { color: var(--pm-action-secondary); text-decoration: none; transition: color var(--pm-duration-base); }
+.pm-link--secondary:hover { color: var(--pm-action-secondary-hover); }
+
+.pm-link--tertiary  { color: var(--pm-action-tertiary); text-decoration: none; transition: color var(--pm-duration-base); }
+.pm-link--tertiary:hover { color: var(--pm-action-tertiary-hover); }
+
+/* Underline that sweeps in from the left and out to the right. */
+.pm-underline {
+  display: inline-block;
+  position: relative;
+}
+.pm-underline::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--pm-gradient-underline);
+  transform: scaleX(0);
+  transform-origin: 100% 100%;
+  transition: transform var(--pm-duration-slow) var(--pm-ease-out);
+}
+.pm-underline:hover::after {
+  transform: scaleX(1);
+  transform-origin: 0 100%;
+}
+
+/* --------------------------------------------------------------------------
+   3. LAYOUT
+   -------------------------------------------------------------------------- */
+
+.pm-container {
+  max-width: var(--pm-container-page);
+  margin-inline: auto;
+  padding-inline: var(--pm-gutter);
+}
+@media (min-width: 40rem) { .pm-container { padding-inline: 1.5rem; } }
+@media (min-width: 64rem) { .pm-container { padding-inline: 2rem; } }
+
+.pm-section     { position: relative; padding-block: var(--pm-section-y); }
+.pm-section--lg { padding-block: var(--pm-section-y-lg); }
+
+/* Section surfaces. Light sections alternate white / tinted; dark sections
+   carry a gradient and clip their decoration. */
+.pm-section--light  { background: #fff; }
+.pm-section--tinted { background: linear-gradient(to bottom, #f7f2ff, #fff); }
+.pm-section--dark {
+  background: var(--pm-gradient-hero);
+  color: var(--pm-body-on-dark);
+  overflow: hidden;
+}
+.pm-section--band {
+  background: var(--pm-gradient-band);
+  color: var(--pm-body-on-dark);
+  overflow: hidden;
+}
+.pm-section--dark :is(h1, h2, h3, h4, h5, h6) { color: var(--pm-heading-on-dark); }
+.pm-section--band :is(h1, h2, h3, h4, h5, h6) { color: var(--pm-heading-on-dark); }
+
+/* Section header block: centred, capped width, generous bottom margin. */
+.pm-section-header {
+  max-width: var(--pm-container-narrow);
+  margin-inline: auto;
+  margin-bottom: 4rem;
+  text-align: center;
+}
+.pm-section-header > * + * { margin-top: 1rem; }
+
+/* --------------------------------------------------------------------------
+   4. DECORATION
+   The dark surfaces are never flat. Two devices do all the work: a tiled
+   texture at 3-5% and soft radial orbs at 20%. Both sit below the content.
+   -------------------------------------------------------------------------- */
+
+.pm-texture {
+  position: absolute;
+  inset: 0;
+  background-image: var(--pm-texture);
+  background-size: cover;
+  opacity: 0.03;
+  pointer-events: none;
+}
+.pm-texture--strong { opacity: 0.05; }
+
+.pm-orb {
+  position: absolute;
+  border-radius: var(--pm-radius-full);
+  opacity: 0.2;
+  pointer-events: none;
+  background: var(--pm-glow-purple);
+}
+.pm-orb--teal { background: var(--pm-glow-teal); }
+
+/* Content above the decoration. */
+.pm-layer { position: relative; z-index: 1; }
+
+/* --------------------------------------------------------------------------
+   5. BUTTONS
+   Pill by default. Six variants, all observed in production.
+   -------------------------------------------------------------------------- */
+
+.pm-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border: 1px solid transparent;
+  border-radius: var(--pm-radius-full);
+  font-family: var(--pm-font-body);
+  font-size: var(--pm-text-sm);
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all var(--pm-duration-slow) var(--pm-ease);
+}
+.pm-btn:disabled,
+.pm-btn[aria-disabled="true"] { opacity: 0.5; cursor: not-allowed; }
+
+/* Large CTA — the hero size. */
+.pm-btn--lg { padding: 1rem 2rem; font-size: var(--pm-text-lg); }
+.pm-btn--sm { padding: 0.5rem 1rem; font-size: var(--pm-text-xs); }
+
+/* Primary: the brand gradient, glowing. */
+.pm-btn--primary {
+  background: var(--pm-gradient-brand);
+  color: #fff;
+  box-shadow: var(--pm-shadow-button);
+}
+.pm-btn--primary:hover { box-shadow: var(--pm-shadow-button-glow); }
+
+/* Inverse: white on a dark surface, purple label. The most common hero CTA. */
+.pm-btn--inverse {
+  background: #fff;
+  color: var(--pm-purple-600);
+  box-shadow: var(--pm-shadow-on-dark);
+}
+.pm-btn--inverse:hover { box-shadow: var(--pm-shadow-overlay); }
+
+/* Glass: translucent, for the second CTA on a dark surface. */
+.pm-btn--glass {
+  background: var(--pm-white-15);
+  border-color: var(--pm-white-30);
+  color: #fff;
+  backdrop-filter: blur(var(--pm-blur-sm));
+  -webkit-backdrop-filter: blur(var(--pm-blur-sm));
+  box-shadow: 0 4px 12px rgb(0 0 0 / 0.1);
+}
+.pm-btn--glass:hover { background: var(--pm-white-20); }
+
+/* Glass with a purple rim — the hero's secondary action. */
+.pm-btn--glass-brand {
+  background: var(--pm-white-10);
+  border-color: var(--pm-purple-tint-60);
+  color: #fff;
+  backdrop-filter: blur(var(--pm-blur-lg));
+  -webkit-backdrop-filter: blur(var(--pm-blur-lg));
+  box-shadow: var(--pm-shadow-on-dark);
+}
+.pm-btn--glass-brand:hover { background: var(--pm-white-20); }
+
+/* Outline: purple rim on a light surface. */
+.pm-btn--outline {
+  background: transparent;
+  border-color: var(--pm-purple-700);
+  color: var(--pm-purple-700);
+}
+.pm-btn--outline:hover { background: var(--pm-purple-tint-05); }
+
+/* Soft: a tinted pill for tertiary actions inside cards. */
+.pm-btn--soft {
+  background: var(--pm-purple-tint-05);
+  color: var(--pm-purple-700);
+  font-weight: 500;
+}
+.pm-btn--soft:hover { background: var(--pm-purple-tint-08); }
+
+/* --------------------------------------------------------------------------
+   6. PILLS & BADGES
+   -------------------------------------------------------------------------- */
+
+.pm-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--pm-radius-full);
+  font-size: var(--pm-text-xs);
+  font-weight: 500;
+  line-height: 1.5;
+}
+.pm-pill--purple { background: var(--pm-gradient-pill-purple); color: #fff; box-shadow: var(--pm-shadow-pill); }
+.pm-pill--teal   { background: var(--pm-gradient-pill-teal);   color: #fff; box-shadow: 0 4px 12px rgb(18 137 122 / 0.2); }
+.pm-pill--amber  { background: var(--pm-gradient-pill-amber);  color: #fff; box-shadow: 0 4px 12px rgb(245 158 11 / 0.2); }
+.pm-pill--tint   { background: var(--pm-purple-tint-05); color: var(--pm-purple-700); }
+.pm-pill--glass {
+  background: var(--pm-white-10);
+  border: 1px solid var(--pm-white-20);
+  color: #fff;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* --------------------------------------------------------------------------
+   7. CARDS
+   White, generously rounded, lifted by a purple-tinted shadow. The hairline
+   border is a 10%-alpha purple, never a gray.
+   -------------------------------------------------------------------------- */
+
+.pm-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 2rem;
+  background: #fff;
+  border: 1px solid var(--pm-hairline);
+  border-radius: var(--pm-radius-xl);
+  box-shadow: var(--pm-shadow-card);
+  transition: transform var(--pm-duration-slow) var(--pm-ease),
+              box-shadow var(--pm-duration-slow) var(--pm-ease);
+}
+
+/* Feature card — rounder, deeper, and it lifts. */
+.pm-card--feature {
+  padding: 2.5rem;
+  border-radius: var(--pm-radius-3xl);
+  box-shadow: var(--pm-shadow-card-strong);
+}
+
+/* Media card — image bleeds to the rounded edge, so no padding at the top. */
+.pm-card--media {
+  padding: 0;
+  overflow: hidden;
+  border-radius: var(--pm-radius-2xl);
+  border-color: var(--pm-purple-tint-30);
+  box-shadow: var(--pm-shadow-card-strong);
+}
+.pm-card--media .pm-card__body { padding: 1.5rem; }
+.pm-card__media {
+  display: block;
+  width: 100%;
+  height: 12rem;
+  object-fit: cover;
+}
+
+/* Glass card — the dark-surface counterpart. */
+.pm-card--glass {
+  background: var(--pm-white-10);
+  border-color: var(--pm-white-20);
+  color: var(--pm-body-on-dark);
+  backdrop-filter: blur(var(--pm-blur-sm));
+  -webkit-backdrop-filter: blur(var(--pm-blur-sm));
+  box-shadow: var(--pm-shadow-float-dark);
+}
+.pm-card--glass :is(h1, h2, h3, h4, h5, h6) { color: #fff; }
+
+/* Quiet card — for supporting content grids. */
+.pm-card--quiet {
+  background: var(--pm-gray-50);
+  border-color: var(--pm-gray-100);
+  box-shadow: var(--pm-shadow-card-soft);
+}
+
+.pm-card__title {
+  font-size: var(--pm-text-xl);
+  color: var(--pm-gray-800);
+  margin-bottom: 0.75rem;
+}
+.pm-card__body { color: var(--pm-body-on-light); }
+.pm-card__footer { margin-top: auto; padding-top: 1rem; }
+
+/* Lift on hover. Apply to the card, or to a wrapping .pm-lift-group. */
+.pm-card--hover:hover,
+.pm-lift-group:hover .pm-card--hover {
+  transform: translateY(-0.5rem);
+  box-shadow: 0 25px 50px rgb(90 27 188 / 0.18);
+}
+
+.pm-lift { transition: transform var(--pm-duration-slow); }
+.pm-lift:hover { transform: translateY(-5px); }
+
+/* --------------------------------------------------------------------------
+   8. ICON TILE
+   Small rounded square carrying a category gradient. Sits at the top of
+   feature cards.
+   -------------------------------------------------------------------------- */
+
+.pm-icon-tile {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: var(--pm-radius-xl);
+  background: var(--pm-gradient-pill-purple);
+  color: #fff;
+  box-shadow: var(--pm-shadow-pill);
+}
+.pm-icon-tile--teal  { background: var(--pm-gradient-pill-teal); }
+.pm-icon-tile--amber { background: var(--pm-gradient-pill-amber); }
+.pm-icon-tile--round { border-radius: var(--pm-radius-full); }
+
+/* --------------------------------------------------------------------------
+   9. NAVIGATION
+   Fixed, saturated purple glass, pill-shaped links, panel dropdowns.
+   -------------------------------------------------------------------------- */
+
+.pm-nav {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  padding-block: 0.5rem;
+  background: var(--pm-nav-scrim);
+  backdrop-filter: var(--pm-backdrop-nav);
+  -webkit-backdrop-filter: var(--pm-backdrop-nav);
+  border-bottom: 1px solid var(--pm-hairline-on-dark);
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  overflow: visible;
+}
+.pm-nav__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.pm-nav__brand {
+  font-family: var(--pm-font-display);
+  font-size: var(--pm-text-lg);
+  font-weight: 600;
+  color: #fff;
+  text-decoration: none;
+  white-space: nowrap;
+  text-shadow: 0 2px 10px rgb(0 0 0 / 0.3);
+}
+@media (min-width: 48rem) {
+  .pm-nav__brand { font-size: var(--pm-text-xl); }
+}
+
+/* Below md the links collapse behind a toggle, as on the live site. */
+.pm-nav__links { display: none; align-items: center; gap: 0.75rem; }
+.pm-nav__toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.5rem;
+  border: 0;
+  border-radius: var(--pm-radius-full);
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  transition: background-color var(--pm-duration-fast);
+}
+.pm-nav__toggle:hover { background: var(--pm-white-10); }
+
+@media (min-width: 48rem) {
+  .pm-nav__links { display: flex; }
+  .pm-nav__toggle { display: none; }
+}
+.pm-nav__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 1rem;
+  border: 0;
+  border-radius: var(--pm-radius-full);
+  background: transparent;
+  font-family: var(--pm-font-body);
+  font-size: var(--pm-text-base);
+  font-weight: 500;
+  color: #fff;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all var(--pm-duration-base) var(--pm-ease);
+}
+.pm-nav__link:hover { background: var(--pm-white-10); }
+.pm-nav__link[aria-current],
+.pm-nav__link--active { background: var(--pm-white-20); }
+
+/* Dropdown panel. Opens 8px below the trigger, scales and fades in. */
+.pm-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 60;
+  width: 14rem;
+  padding-block: 0.5rem;
+  background: var(--pm-nav-scrim);
+  border: 1px solid var(--pm-white-20);
+  border-radius: var(--pm-radius-lg);
+  box-shadow: var(--pm-shadow-overlay);
+  backdrop-filter: blur(var(--pm-blur-lg));
+  -webkit-backdrop-filter: blur(var(--pm-blur-lg));
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-0.5rem) scale(0.95);
+  transition: all var(--pm-duration-fast) var(--pm-ease-out);
+}
+.pm-menu[data-open="true"],
+.pm-menu-wrap:hover .pm-menu,
+.pm-menu-wrap:focus-within .pm-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+}
+.pm-menu-wrap { position: relative; }
+.pm-menu__item {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  font-size: var(--pm-text-sm);
+  color: var(--pm-white-90);
+  text-decoration: none;
+  transition: background-color var(--pm-duration-fast),
+              color var(--pm-duration-fast);
+}
+.pm-menu__item:hover { background: var(--pm-white-10); color: #fff; }
+.pm-menu__divider {
+  height: 1px;
+  margin: 0.25rem 0.75rem;
+  background: var(--pm-white-20);
+  border: 0;
+}
+
+/* Mobile drawer. Items become full-width rounded-md rows. */
+.pm-nav__drawer {
+  display: none;
+  padding: 0.5rem 0 1rem;
+  border-top: 1px solid var(--pm-hairline-on-dark);
+  margin-top: 0.5rem;
+}
+.pm-nav__drawer[data-open="true"] { display: block; }
+@media (min-width: 48rem) {
+  .pm-nav__drawer,
+  .pm-nav__drawer[data-open="true"] { display: none; }
+}
+.pm-nav__drawer .pm-nav__link {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border-radius: var(--pm-radius-md);
+  color: var(--pm-white-90);
+}
+.pm-nav__drawer .pm-nav__link:hover { color: #fff; }
+
+/* --------------------------------------------------------------------------
+   10. FORMS
+   Glass inputs on dark surfaces; the newsletter row is the canonical case.
+   -------------------------------------------------------------------------- */
+
+.pm-field {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--pm-white-20);
+  border-radius: var(--pm-radius-full);
+  background: var(--pm-white-10);
+  backdrop-filter: blur(var(--pm-blur-sm));
+  -webkit-backdrop-filter: blur(var(--pm-blur-sm));
+  font-family: var(--pm-font-body);
+  font-size: var(--pm-text-sm);
+  color: #fff;
+}
+.pm-field::placeholder { color: var(--pm-white-60); }
+.pm-field:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--pm-white-30);
+}
+
+.pm-field--light {
+  background: #fff;
+  border-color: var(--pm-gray-200);
+  color: var(--pm-gray-900);
+}
+.pm-field--light::placeholder { color: var(--pm-gray-400); }
+.pm-field--light:focus { box-shadow: 0 0 0 2px var(--pm-purple-tint-30); }
+
+.pm-form-row { display: flex; flex-direction: column; gap: 0.75rem; }
+@media (min-width: 40rem) { .pm-form-row { flex-direction: row; } }
+@media (min-width: 40rem) { .pm-form-row .pm-field { flex: 1; } }
+
+/* --------------------------------------------------------------------------
+   11. FOOTER
+   Dark gradient, texture, two orbs, and link lists whose bullets are
+   coloured dots that nudge right on hover.
+   -------------------------------------------------------------------------- */
+
+.pm-footer {
+  position: relative;
+  overflow: hidden;
+  background: var(--pm-gradient-hero);
+  color: var(--pm-body-on-dark);
+  padding-block: 4rem;
+}
+.pm-footer :is(h1, h2, h3, h4, h5, h6) { color: #fff; }
+
+.pm-footer__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 3rem;
+}
+@media (min-width: 48rem) { .pm-footer__grid { grid-template-columns: repeat(2, 1fr); } }
+@media (min-width: 64rem) { .pm-footer__grid { grid-template-columns: repeat(4, 1fr); } }
+
+.pm-footer__heading {
+  font-size: var(--pm-text-xl);
+  margin-bottom: 1.5rem;
+}
+
+.pm-dot-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding-block: 0.35rem;
+  color: var(--pm-white-70);
+  text-decoration: none;
+  transition: color var(--pm-duration-base);
+}
+.pm-dot-link:hover { color: #fff; }
+.pm-dot-link::before {
+  content: "";
+  flex-shrink: 0;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: var(--pm-radius-full);
+  background: var(--pm-teal-400);
+}
+.pm-dot-link--purple::before { background: var(--pm-purple-400); }
+.pm-dot-link--green::before  { background: var(--pm-emerald-600); }
+.pm-dot-link > span { transition: transform var(--pm-duration-base); }
+.pm-dot-link:hover > span { transform: translateX(0.25rem); }
+
+/* --------------------------------------------------------------------------
+   12. LONG-FORM COPY
+   The .prose-purple treatment: Cinzel headings in royal purple, purple
+   markers, tinted blockquote.
+   -------------------------------------------------------------------------- */
+
+.pm-prose { color: var(--pm-gray-700); line-height: var(--pm-leading-relaxed); }
+.pm-prose :is(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--pm-font-display);
+  color: var(--pm-purple-700);
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+}
+.pm-prose a { color: var(--pm-action); text-decoration: none; }
+.pm-prose a:hover { color: var(--pm-purple-700); text-decoration: underline; }
+.pm-prose :is(strong, b) { color: var(--pm-strong-on-light); font-weight: 700; }
+.pm-prose :is(ul, ol) li::marker { color: var(--pm-action); }
+.pm-prose blockquote {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  border-left: 4px solid var(--pm-action);
+  border-radius: 0.5rem;
+  background: rgb(126 45 247 / 0.05);
+  color: #6b7280;
+  font-style: italic;
+}
+.pm-prose code {
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.25rem;
+  background: rgb(126 45 247 / 0.1);
+  color: var(--pm-purple-700);
+  font-family: var(--pm-font-mono);
+}
+
+/* --------------------------------------------------------------------------
+   13. MOTION
+   -------------------------------------------------------------------------- */
+
+.pm-fade-in { animation: pm-fade-in 1s var(--pm-ease-in) forwards; }
+
+@keyframes pm-fade-in {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pm-float {
+  0%   { transform: translate(0, 0); }
+  50%  { transform: translate(15px, 15px); }
+  100% { transform: translate(-15px, 15px); }
+}
+
+.pm-float { animation: pm-float 12s var(--pm-ease) infinite; }
+
+/* Chevrons and arrows nudge forward when their row is hovered. */
+.pm-nudge { transition: transform var(--pm-duration-base); }
+.pm-lift-group:hover .pm-nudge,
+a:hover > .pm-nudge,
+button:hover > .pm-nudge { transform: translateX(0.25rem); }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .pm-lift:hover,
+  .pm-card--hover:hover,
+  .pm-lift-group:hover .pm-card--hover { transform: none; }
+}

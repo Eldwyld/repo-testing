@@ -1,0 +1,239 @@
+/* ==========================================================================
+   Plant Magic — Design Tokens
+   Extracted from plantmagic.org. Every value here was observed in the
+   production build; nothing is invented. See tokens.json for provenance.
+
+   Import this before css/plant-magic.css.
+   ========================================================================== */
+
+:root {
+  /* ---------------------------------------------------------------------
+     BRAND — Amethyst
+     Dark steps are surfaces. 500 is the action colour.
+     --------------------------------------------------------------------- */
+  --pm-purple-950: #1f0b3d;
+  --pm-purple-900: #2d0f63;
+  --pm-purple-850: #380f57;
+  --pm-purple-700: #5a1bbc;
+  --pm-purple-600: #6b20e5;
+  --pm-purple-500: #7e2df7;
+  --pm-purple-400: #8c45ff;
+  --pm-purple-300: #a66eff;
+  --pm-purple-200: #c577ff;
+
+  /* Magenta — the secondary link role. A separate hue, not a purple tint. */
+  --pm-magenta-500: #9930e3;
+  --pm-magenta-600: #8222c3;
+
+  /* Teal — the counterweight. Every signature gradient lands here. */
+  --pm-teal-700: #136e62;
+  --pm-teal-600: #12897a;
+  --pm-teal-400: #1daf99;
+  --pm-teal-300: #39cdb5;
+
+  /* Category accents. Used as gradient pairs, never as flat fills. */
+  --pm-amber-500: #f59e0b;
+  --pm-amber-600: #d97706;
+  --pm-emerald-600: #059669;
+  --pm-violet-600: #9333ea;
+
+  /* Neutrals — stock Tailwind gray. */
+  --pm-white: #fff;
+  --pm-gray-50: #f9fafb;
+  --pm-gray-100: #f3f4f6;
+  --pm-gray-200: #e5e7eb;
+  --pm-gray-400: #99a1af;
+  --pm-gray-600: #4a5565;
+  --pm-gray-700: #364153;
+  --pm-gray-800: #1e2939;
+  --pm-gray-900: #101828;
+
+  /* ---------------------------------------------------------------------
+     ALPHA — the glass aesthetic
+     On dark surfaces these do the work that solid fills do elsewhere.
+     --------------------------------------------------------------------- */
+  --pm-nav-scrim: rgb(45 15 99 / 0.95);
+  --pm-white-04: rgb(255 255 255 / 0.04);
+  --pm-white-10: rgb(255 255 255 / 0.10);
+  --pm-white-15: rgb(255 255 255 / 0.15);
+  --pm-white-20: rgb(255 255 255 / 0.20);
+  --pm-white-30: rgb(255 255 255 / 0.30);
+  --pm-white-60: rgb(255 255 255 / 0.60);
+  --pm-white-70: rgb(255 255 255 / 0.70);
+  --pm-white-80: rgb(255 255 255 / 0.80);
+  --pm-white-90: rgb(255 255 255 / 0.90);
+  --pm-purple-tint-05: rgb(90 27 188 / 0.05);
+  --pm-purple-tint-08: rgb(90 27 188 / 0.08);
+  --pm-purple-tint-10: rgb(106 32 229 / 0.10);
+  --pm-purple-tint-30: rgb(126 45 247 / 0.30);
+  --pm-purple-tint-60: rgb(126 45 247 / 0.60);
+
+  /* ---------------------------------------------------------------------
+     ROLES — bind components to intent, not to a swatch
+     --------------------------------------------------------------------- */
+  --pm-action: var(--pm-purple-500);
+  --pm-action-hover: var(--pm-purple-600);
+  --pm-action-secondary: var(--pm-magenta-500);
+  --pm-action-secondary-hover: var(--pm-magenta-600);
+  --pm-action-tertiary: var(--pm-teal-600);
+  --pm-action-tertiary-hover: var(--pm-teal-700);
+
+  --pm-surface-dark: var(--pm-purple-900);
+  --pm-surface-light: var(--pm-white);
+  --pm-surface-page: #fbfcfd;
+
+  --pm-heading-on-light: var(--pm-purple-700);
+  --pm-heading-on-dark: var(--pm-white);
+  --pm-body-on-light: var(--pm-gray-600);
+  --pm-body-on-dark: var(--pm-white-80);
+  --pm-strong-on-light: var(--pm-purple-850);
+
+  --pm-hairline: var(--pm-purple-tint-10);
+  --pm-hairline-on-dark: var(--pm-white-20);
+
+  /* ---------------------------------------------------------------------
+     GRADIENTS
+     --------------------------------------------------------------------- */
+  --pm-gradient-brand: linear-gradient(135deg, #7e2df7, #12897a);
+  --pm-gradient-brand-h: linear-gradient(to right, #7e2df7, #12897a);
+  --pm-gradient-brand-soft: linear-gradient(to right, #8c45ff, #12897a);
+  --pm-gradient-text: linear-gradient(90deg, #7e2df7, #12897a);
+  --pm-gradient-text-royal: linear-gradient(to right, #380f57, #5a1bbc);
+  --pm-gradient-underline: linear-gradient(90deg, #8c45ff, #1daf99);
+  --pm-gradient-hero: linear-gradient(135deg, #2d0f63, #380f57, #1f0b3d);
+  --pm-gradient-hero-lift: linear-gradient(#2d0f63 0%, #380f57 50%, #5a1bbc 100%);
+  --pm-gradient-surface: linear-gradient(135deg, #2d0f63 0%, #380f57 100%);
+  --pm-gradient-band: linear-gradient(to right, #380f57, #5a1bbc);
+  --pm-gradient-pill-purple: linear-gradient(135deg, #7e2df7, #9333ea);
+  --pm-gradient-pill-teal: linear-gradient(135deg, #12897a, #059669);
+  --pm-gradient-pill-amber: linear-gradient(135deg, #f59e0b, #d97706);
+  --pm-glow-purple: radial-gradient(circle, rgb(126 45 247 / 0.3) 0%, rgb(126 45 247 / 0) 70%);
+  --pm-glow-teal: radial-gradient(circle, rgb(18 137 122 / 0.3) 0%, rgb(18 137 122 / 0) 70%);
+
+  /* ---------------------------------------------------------------------
+     ELEVATION — tinted, not neutral
+     On light surfaces shadows carry royal purple. On dark surfaces they
+     are plain black at high spread.
+     --------------------------------------------------------------------- */
+  --pm-shadow-card: 0 10px 30px rgb(90 27 188 / 0.10), 0 5px 15px rgb(0 0 0 / 0.03);
+  --pm-shadow-card-strong: 0 10px 30px rgb(90 27 188 / 0.15), 0 5px 15px rgb(0 0 0 / 0.08);
+  --pm-shadow-card-soft: 0 5px 20px rgb(90 27 188 / 0.08);
+  --pm-shadow-pill: 0 4px 12px rgb(126 45 247 / 0.20);
+  --pm-shadow-button: 0 4px 15px rgb(126 45 247 / 0.30);
+  --pm-shadow-button-glow: 0 8px 25px rgb(126 45 247 / 0.40);
+  --pm-shadow-on-dark: 0 8px 25px rgb(0 0 0 / 0.20);
+  --pm-shadow-float-dark: 0 15px 30px rgb(0 0 0 / 0.20);
+  --pm-shadow-overlay: 0 25px 50px rgb(0 0 0 / 0.40);
+  --pm-text-glow: 0 0 20px rgb(126 45 247 / 0.50);
+  --pm-text-glow-strong: 0 0 30px rgb(126 45 247 / 0.80);
+
+  /* ---------------------------------------------------------------------
+     TYPE
+     --------------------------------------------------------------------- */
+  --pm-font-display: "Cinzel", "Trajan Pro", "Times New Roman", serif;
+  --pm-font-body: "Inter", system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --pm-font-serif: "Cormorant", "EB Garamond", "Garamond", "Georgia", serif;
+  --pm-font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", monospace;
+
+  --pm-text-xs: 0.75rem;
+  --pm-text-sm: 0.875rem;
+  --pm-text-base: 1rem;
+  --pm-text-lg: 1.125rem;
+  --pm-text-xl: 1.25rem;
+  --pm-text-2xl: 1.5rem;
+  --pm-text-3xl: 1.875rem;
+  --pm-text-4xl: 2.25rem;
+  --pm-text-5xl: 3rem;
+  --pm-text-6xl: 3.75rem;
+  --pm-text-7xl: 4.5rem;
+
+  --pm-leading-body: 1.55;
+  --pm-leading-tight: 1.25;
+  --pm-leading-snug: 1.375;
+  --pm-leading-relaxed: 1.625;
+
+  --pm-tracking-display: 0.01em;
+  --pm-tracking-wide: 0.025em;
+  --pm-tracking-wider: 0.05em;
+  --pm-tracking-widest: 0.1em;
+
+  /* ---------------------------------------------------------------------
+     SPACE, SHAPE, MOTION
+     --------------------------------------------------------------------- */
+  --pm-space: 0.25rem;
+  --pm-section-y: 5rem;      /* py-20 — the common rhythm */
+  --pm-section-y-lg: 6rem;   /* py-24 — feature sections */
+  --pm-gutter: 1rem;         /* px-4, steps to 1.5rem at sm and 2rem at lg */
+
+  --pm-radius: 0.625rem;
+  --pm-radius-sm: calc(var(--pm-radius) - 4px);
+  --pm-radius-md: calc(var(--pm-radius) - 2px);
+  --pm-radius-lg: var(--pm-radius);
+  --pm-radius-xl: calc(var(--pm-radius) + 4px);
+  --pm-radius-2xl: calc(var(--pm-radius) + 8px);
+  --pm-radius-3xl: calc(var(--pm-radius) + 12px);
+  --pm-radius-full: 9999px;
+
+  --pm-blur-sm: 8px;
+  --pm-blur-md: 12px;
+  --pm-blur-lg: 16px;
+  --pm-blur-xl: 24px;
+  --pm-backdrop-nav: blur(20px) saturate(180%);
+
+  --pm-duration-fast: 150ms;
+  --pm-duration-base: 200ms;
+  --pm-duration-slow: 300ms;
+  --pm-duration-slower: 500ms;
+  --pm-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  --pm-ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --pm-ease-in: cubic-bezier(0.4, 0, 1, 1);
+
+  --pm-container-page: 80rem;
+  --pm-container-prose: 48rem;
+  --pm-container-narrow: 42rem;
+
+  --pm-texture: url("../assets/pattern.jpg");
+}
+
+/* --------------------------------------------------------------------------
+   shadcn/ui compatibility layer, as shipped by the site.
+
+   Heads-up: --primary below is #6639ee, a shadcn scaffold default that was
+   never reconciled with the brand purple (#7e2df7). Components built on
+   `bg-primary` therefore render off-brand. Flip PM_ALIGN_SHADCN on to bind
+   the semantic layer to the brand instead — see docs/01-color.md.
+   -------------------------------------------------------------------------- */
+:root {
+  --radius: 0.625rem;
+  --background: #fbfcfd;
+  --foreground: #14151f;
+  --card: #fff;
+  --card-foreground: #14151f;
+  --popover: #fff;
+  --popover-foreground: #14151f;
+  --primary: #6639ee;
+  --primary-foreground: #f8f8f8;
+  --secondary: #f0f0ff;
+  --secondary-foreground: #382483;
+  --muted: #f0f1f9;
+  --muted-foreground: #61626f;
+  --accent: #f0f0ff;
+  --accent-foreground: #382483;
+  --destructive: #d40924;
+  --border: #dcdde5;
+  --input: #e3e4eb;
+  --ring: #6639ee;
+}
+
+/* Opt-in: make the shadcn layer speak brand. Add class="pm-aligned" to <html>. */
+.pm-aligned {
+  --primary: var(--pm-purple-500);
+  --primary-foreground: #fff;
+  --secondary: #f4efff;
+  --secondary-foreground: var(--pm-purple-850);
+  --accent: #f4efff;
+  --accent-foreground: var(--pm-purple-850);
+  --ring: var(--pm-purple-500);
+}

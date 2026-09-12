@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plant Magic — Design System</title>
+<link rel="stylesheet" href="../tokens/tokens.css">
+<link rel="stylesheet" href="../css/plant-magic.css">
+<style>
+  /* Styleguide chrome only — not part of the design system. */
+  .sg-main { padding-top: 1rem; }
+  .sg-block { padding-block: 3.5rem; border-bottom: 1px solid var(--pm-gray-200); }
+  .sg-block:last-child { border-bottom: 0; }
+  .sg-block > h2 {
+    font-size: var(--pm-text-3xl);
+    color: var(--pm-purple-700);
+    margin-bottom: 0.5rem;
+  }
+  .sg-note {
+    max-width: var(--pm-container-prose);
+    color: var(--pm-gray-600);
+    margin-bottom: 2rem;
+  }
+  .sg-row { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; }
+  .sg-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+    gap: 1.5rem;
+  }
+  .sg-swatches {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+    gap: 0.75rem;
+  }
+  .sg-swatch { border-radius: var(--pm-radius-md); overflow: hidden; border: 1px solid var(--pm-gray-200); }
+  .sg-swatch__chip { height: 4.5rem; }
+  .sg-swatch__meta { padding: 0.5rem 0.625rem; background: #fff; }
+  .sg-swatch__name { font-size: var(--pm-text-xs); font-weight: 600; color: var(--pm-gray-800); }
+  .sg-swatch__hex {
+    font-family: var(--pm-font-mono);
+    font-size: 0.6875rem;
+    color: var(--pm-gray-600);
+  }
+  .sg-dark-demo {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--pm-radius-2xl);
+    background: var(--pm-gradient-hero);
+    padding: 3rem 2rem;
+  }
+  .sg-label {
+    font-family: var(--pm-font-mono);
+    font-size: 0.6875rem;
+    color: var(--pm-gray-400);
+    display: block;
+    margin-bottom: 0.5rem;
+  }
+  .sg-shadow-demo {
+    background: #fff;
+    border: 1px solid var(--pm-hairline);
+    border-radius: var(--pm-radius-xl);
+    padding: 1.5rem;
+  }
+  table.sg-table { width: 100%; border-collapse: collapse; font-size: var(--pm-text-sm); }
+  table.sg-table th { text-align: left; padding: 0.5rem 0.75rem; color: var(--pm-gray-800); border-bottom: 2px solid var(--pm-gray-200); }
+  table.sg-table td { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--pm-gray-100); color: var(--pm-gray-600); }
+  .sg-pass { color: var(--pm-teal-700); font-weight: 600; }
+  .sg-fail { color: #b4531f; font-weight: 600; }
+</style>
+</head>
+<body>
+
+<!-- ===================== NAV ===================== -->
+<nav class="pm-nav">
+  <div class="pm-texture"></div>
+  <div class="pm-container pm-layer">
+    <div class="pm-nav__inner">
+      <a class="pm-nav__brand" href="#">Plant Magic</a>
+      <div class="pm-nav__links">
+        <div class="pm-menu-wrap">
+          <button class="pm-nav__link" aria-expanded="false">
+            About
+            <svg class="pm-nudge" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <path d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+          <div class="pm-menu">
+            <a class="pm-menu__item" href="#">Overview</a>
+            <a class="pm-menu__item" href="#">Sanctuary</a>
+            <a class="pm-menu__item" href="#">Volunteer</a>
+            <hr class="pm-menu__divider">
+            <a class="pm-menu__item" href="#">Donate</a>
+          </div>
+        </div>
+        <a class="pm-nav__link pm-nav__link--active" href="#">Café</a>
+        <a class="pm-nav__link" href="#">Events</a>
+      </div>
+
+      <button class="pm-nav__toggle" aria-label="Open main menu" aria-expanded="false">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+             stroke-width="2" stroke-linecap="round">
+          <path d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="pm-nav__drawer" data-open="false">
+      <a class="pm-nav__link" href="#">About</a>
+      <a class="pm-nav__link pm-nav__link--active" href="#">Café</a>
+      <a class="pm-nav__link" href="#">Events</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ===================== HERO ===================== -->
+<header class="pm-section pm-section--dark pm-section--lg" style="padding-top:9rem">
+  <div class="pm-texture"></div>
+  <div class="pm-orb" style="top:0;left:0;width:22rem;height:22rem;transform:translate(-25%,-25%)"></div>
+  <div class="pm-orb pm-orb--teal" style="bottom:0;right:0;width:26rem;height:26rem;transform:translate(25%,25%)"></div>
+
+  <div class="pm-container pm-layer" style="text-align:center">
+    <span class="pm-pill pm-pill--glass" style="margin-bottom:1.5rem">Design System v1</span>
+    <h1 class="pm-h1 pm-glow-text--hero" style="margin-bottom:1.5rem">Plant Magic</h1>
+    <p class="pm-lede" style="color:var(--pm-body-on-dark);margin-inline:auto;margin-bottom:2rem">
+      Every token, pattern and gesture extracted from the production site —
+      collected here for the first time in one place.
+    </p>
+    <div class="sg-row" style="justify-content:center">
+      <a class="pm-btn pm-btn--lg pm-btn--primary" href="#components">Explore Components</a>
+      <a class="pm-btn pm-btn--lg pm-btn--glass-brand" href="#color">View Palette</a>
+    </div>
+  </div>
+</header>
+
+<main class="pm-container sg-main">
+
+  <!-- ===================== COLOR ===================== -->
+  <section class="sg-block" id="color">
+    <h2>Color</h2>
+    <p class="sg-note">
+      Two hues carry the brand. They almost never appear apart — the signature
+      move is a 135° gradient running purple to teal.
+    </p>
+
+    <span class="sg-label">brand / amethyst</span>
+    <div class="sg-swatches" style="margin-bottom:2rem">
+      <div class="sg-swatch"><div class="sg-swatch__chip" style="background:#1f0b3d"></div><div class="sg-swatch__meta"><div class="sg-swatch__name">purple-950</div><div class="sg-swatch__hex">#1F0B3D</div></div></div>
+      <div class="sg-swatch"><div class="sg-swatch__chip" style="background:#2d0f63"></div><div class="sg-swatch__meta"><div class="sg-swatch__name">purple-900</div><div class="sg-swatch__hex">#2D0F63</div></div></div>
+      <div class="sg-swatch"><div class="sg-swatch__chip" style="background:#380f57"></div><div class="sg-swatch__meta"><div class="sg-swatch__name">purple-850</div><div class="sg-swatch__hex">#380F57</div></div></div>
+      <div class="sg-swatch"><div class="sg-swatch__chip" style="background:#5a1bbc"></div><div class="sg-swatch__meta"><div class="sg-swatch__name">purple-700</div><div class="sg-swatch__hex">#5A1BBC</div></div></div>
+      <div class="sg-swatch"><div class="sg-swatch__chip" style="background:#6b20e5"></div><div class="sg-swatch__meta"><div class="sg-swatch__name">purple-600</div><div class="sg-swatch__hex">#6B20E5</div></div></div>
+      <div class="sg-swatch"><div class="sg-swatch__chip" style="background:#7e2df7"></div><div class="sg-swatch__meta"><div class="sg-swatch__name">purple-500 · action</div><div class="sg-swatch__hex">#7E2DF7</div></div></div>
+      <div class="sg-swatch"><div class="sg-swatch__chip" style="background:#8c45ff"></div><div class="sg-swatch__meta"><div class="sg-swatch__name">purple-400</div><div class="sg-swatch__hex">#8C45FF</div></div></div>
+      <div class="sg-swatch"><div class="sg-swatch__chip" style="background:#a66eff"></div><div class="sg-swatch__meta"><div class="sg-swatch__name">purple-300</div><div class="sg-swatch__hex">#A66EFF</div></div></div>
+      <div class="sg-swatch"><div class="sg-swatch__chip" style="background:#c577ff"></div><div class="sg-swatch__meta"><div class="sg-swatch__name">purple-200</div><div class="sg-swatch__hex">#C577FF</div></div></div>
+    </div>
+
+    <span class="sg-label">teal + magenta</span>
+    <div class="sg-swatches" style="margin-bottom:2rem">
+      <div class="sg-swatch"><div class="sg-swatch__chip" style="background:#136e62"></div><div class="sg-swatch__meta"><div class="sg-swatch__name">teal-700</div><div class="sg-swatch__hex">#136E62</div></div></div>
+      <div class="sg-swatch"><div class="sg-swatch__chip" style="background:#12897a"></div><div class="sg-swatch__meta"><div class="sg-swatch__name">teal-600 · action 2</div><div class="sg-swatch__hex">#12897A</div></div></div>
+      <div class="sg-swatch"><div class="sg-swatch__chip" style="background:#1daf99"></div><div class="sg-swatch__meta"><div class="sg-swatch__name">teal-400</div><div class="sg-swatch__hex">#1DAF99</div></div></div>
+      <div class="sg-swatch"><div class="sg-swatch__chip" style="background:#39cdb5"></div><div class="sg-swatch__meta"><div class="sg-swatch__name">teal-300</div><div class="sg-swatch__hex">#39CDB5</div></div></div>
+      <div class="sg-swatch"><div class="sg-swatch__chip" style="background:#9930e3"></div><div class="sg-swatch__meta"><div class="sg-swatch__name">magenta-500</div><div class="sg-swatch__hex">#9930E3</div></div></div>
+      <div class="sg-swatch"><div class="sg-swatch__chip" style="background:#8222c3"></div><div class="sg-swatch__meta"><div class="sg-swatch__name">magenta-600</div><div class="sg-swatch__hex">#8222C3</div></div></div>
+    </div>
+
+    <span class="sg-label">gradients</span>
+    <div class="sg-grid" style="margin-bottom:2rem">
+      <div class="sg-swatch"><div class="sg-swatch__chip" style="background:var(--pm-gradient-brand)"></div><div class="sg-swatch__meta"><div class="sg-swatch__name">brand</div><div class="sg-swatch__hex">135° 7E2DF7 → 12897A</div></div></div>
+      <div class="sg-swatch"><div class="sg-swatch__chip" style="background:var(--pm-gradient-hero)"></div><div class="sg-swatch__meta"><div class="sg-swatch__name">hero surface</div><div class="sg-swatch__hex">2D0F63 → 380F57 → 1F0B3D</div></div></div>
+      <div class="sg-swatch"><div class="sg-swatch__chip" style="background:var(--pm-gradient-band)"></div><div class="sg-swatch__meta"><div class="sg-swatch__name">band</div><div class="sg-swatch__hex">380F57 → 5A1BBC</div></div></div>
+      <div class="sg-swatch"><div class="sg-swatch__chip" style="background:var(--pm-gradient-pill-amber)"></div><div class="sg-swatch__meta"><div class="sg-swatch__name">pill / amber</div><div class="sg-swatch__hex">F59E0B → D97706</div></div></div>
+    </div>
+
+    <span class="sg-label">contrast audit — computed WCAG 2.1</span>
+    <div style="overflow-x:auto">
+      <table class="sg-table">
+        <thead><tr><th>Pair</th><th>Ratio</th><th>Verdict</th></tr></thead>
+        <tbody>
+          <tr><td>purple-500 <code>#7E2DF7</code> on white</td><td>5.82</td><td class="sg-pass">AA normal</td></tr>
+          <tr><td>purple-600 <code>#6B20E5</code> on white</td><td>7.09</td><td class="sg-pass">AAA</td></tr>
+          <tr><td>purple-700 <code>#5A1BBC</code> on white</td><td>9.06</td><td class="sg-pass">AAA</td></tr>
+          <tr><td>magenta-500 <code>#9930E3</code> on white</td><td>5.40</td><td class="sg-pass">AA normal</td></tr>
+          <tr><td>teal-600 <code>#12897A</code> on white</td><td>4.30</td><td class="sg-fail">AA large only</td></tr>
+          <tr><td>teal-700 <code>#136E62</code> on white</td><td>6.11</td><td class="sg-pass">AA normal</td></tr>
+          <tr><td>white on purple-900 <code>#2D0F63</code></td><td>15.44</td><td class="sg-pass">AAA</td></tr>
+          <tr><td>white-80 on purple-900</td><td>10.17</td><td class="sg-pass">AAA</td></tr>
+          <tr><td>white-70 on purple-900</td><td>8.03</td><td class="sg-pass">AAA</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===================== TYPE ===================== -->
+  <section class="sg-block" id="type">
+    <h2>Typography</h2>
+    <p class="sg-note">
+      Cinzel for every heading, Inter for everything else, Cormorant for
+      editorial asides. The contrast between the first two <em>is</em> the
+      typographic identity.
+    </p>
+
+    <span class="sg-label">display · Cinzel</span>
+    <div style="margin-bottom:2rem">
+      <div class="pm-h1" style="color:var(--pm-purple-700)">Sacred Spaces</div>
+      <div class="pm-h2 pm-gradient-text">Bridging Ancient Wisdom</div>
+      <div class="pm-h3" style="color:var(--pm-purple-850)">Community &amp; Ceremony</div>
+      <div class="pm-h4" style="color:var(--pm-gray-800)">Conscious Connection</div>
+    </div>
+
+    <span class="sg-label">body · Inter</span>
+    <p class="pm-lede" style="margin-bottom:1rem">
+      Lede — 1.25rem, line-height 1.625, gray-600, capped at 48rem.
+    </p>
+    <p style="max-width:var(--pm-container-prose);color:var(--pm-gray-600);margin-bottom:2rem">
+      Default body copy sits at 14px with a 1.55 line-height. The Inter feature
+      settings <code>cv02 cv03 cv04 cv11</code> switch on the single-storey a,
+      the open g and the tailed l — they soften the face noticeably, and they
+      are deliberate.
+    </p>
+
+    <span class="sg-label">serif · Cormorant</span>
+    <p class="pm-serif" style="font-size:1.5rem;color:var(--pm-purple-850);max-width:var(--pm-container-prose);margin-bottom:2rem">
+      “The plants do not speak in words. They speak in the quiet that follows.”
+    </p>
+
+    <span class="sg-label">eyebrow &amp; treatments</span>
+    <div class="pm-eyebrow" style="margin-bottom:0.75rem">Upcoming Gatherings</div>
+    <p><a class="pm-underline pm-link" href="#">Hover for the gradient sweep</a></p>
+    <p class="sg-row">
+      <a class="pm-link--primary" href="#">Primary link</a>
+      <a class="pm-link--secondary" href="#">Secondary link</a>
+      <a class="pm-link--tertiary" href="#">Tertiary link</a>
+    </p>
+  </section>
+
+  <!-- ===================== BUTTONS ===================== -->
+  <section class="sg-block" id="components">
+    <h2>Buttons</h2>
+    <p class="sg-note">Pill-shaped by default. Six variants, all in production.</p>
+
+    <span class="sg-label">on light</span>
+    <div class="sg-row" style="margin-bottom:2rem">
+      <a class="pm-btn pm-btn--primary" href="#">Primary</a>
+      <a class="pm-btn pm-btn--outline" href="#">Outline</a>
+      <a class="pm-btn pm-btn--soft" href="#">Soft</a>
+      <a class="pm-btn pm-btn--sm pm-btn--soft" href="#">Small soft</a>
+      <a class="pm-btn pm-btn--lg pm-btn--primary" href="#">Large primary</a>
+    </div>
+
+    <span class="sg-label">on dark</span>
+    <div class="sg-dark-demo">
+      <div class="pm-texture"></div>
+      <div class="pm-orb" style="top:-3rem;right:2rem;width:14rem;height:14rem"></div>
+      <div class="sg-row pm-layer">
+        <a class="pm-btn pm-btn--lg pm-btn--primary" href="#">Primary</a>
+        <a class="pm-btn pm-btn--lg pm-btn--inverse" href="#">Inverse</a>
+        <a class="pm-btn pm-btn--lg pm-btn--glass" href="#">Glass</a>
+        <a class="pm-btn pm-btn--lg pm-btn--glass-brand" href="#">Glass brand</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== PILLS ===================== -->
+  <section class="sg-block">
+    <h2>Pills &amp; badges</h2>
+    <p class="sg-note">
+      Category colour carried by a 135° gradient plus a matching 20%-alpha shadow.
+    </p>
+    <div class="sg-row">
+      <span class="pm-pill pm-pill--purple">Ceremony</span>
+      <span class="pm-pill pm-pill--teal">Café</span>
+      <span class="pm-pill pm-pill--amber">Event</span>
+      <span class="pm-pill pm-pill--tint">Draft</span>
+    </div>
+  </section>
+
+  <!-- ===================== CARDS ===================== -->
+  <section class="sg-block">
+    <h2>Cards</h2>
+    <p class="sg-note">
+      White, generously rounded, lifted by a purple-tinted shadow, hairline
+      border in 10%-alpha purple — never gray. Hover to see the lift.
+    </p>
+
+    <div class="sg-grid" style="margin-bottom:2rem">
+      <div class="pm-lift-group">
+        <article class="pm-card pm-card--hover">
+          <h3 class="pm-card__title">Standard</h3>
+          <div class="pm-card__body">
+            <code>rounded-xl</code>, <code>p-8</code>, resting shadow.
+          </div>
+          <div class="pm-card__footer">
+            <a class="pm-btn pm-btn--sm pm-btn--soft" href="#">Read more</a>
+          </div>
+        </article>
+      </div>
+
+      <div class="pm-lift-group">
+        <article class="pm-card pm-card--feature pm-card--hover">
+          <div class="pm-icon-tile pm-icon-tile--teal" style="margin-bottom:1rem">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2v20M2 12h20"/>
+            </svg>
+          </div>
+          <h3 class="pm-card__title">Feature</h3>
+          <div class="pm-card__body">
+            <code>rounded-3xl</code>, <code>p-10</code>, stronger shadow, icon tile.
+          </div>
+        </article>
+      </div>
+
+      <article class="pm-card pm-card--quiet">
+        <h3 class="pm-card__title">Quiet</h3>
+        <div class="pm-card__body">
+          <code>bg-gray-50</code> for supporting grids.
+        </div>
+      </article>
+    </div>
+
+    <span class="sg-label">glass card on dark</span>
+    <div class="sg-dark-demo">
+      <div class="pm-texture"></div>
+      <div class="pm-layer sg-grid">
+        <article class="pm-card pm-card--glass">
+          <h3 class="pm-card__title">Glass</h3>
+          <div class="pm-card__body">
+            <code>white-10</code> fill, <code>white-20</code> border, blur 8px.
+          </div>
+        </article>
+        <article class="pm-card pm-card--glass">
+          <h3 class="pm-card__title">Sanctuary</h3>
+          <div class="pm-card__body">
+            The border is what sells it — without the hairline it reads as a smudge.
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== ELEVATION ===================== -->
+  <section class="sg-block">
+    <h2>Elevation</h2>
+    <p class="sg-note">
+      Shadows are tinted with royal purple on light surfaces — a wide coloured
+      glow plus a tight, quieter neutral contact shadow.
+    </p>
+    <div class="sg-grid">
+      <div class="sg-shadow-demo" style="box-shadow:var(--pm-shadow-card-soft)">
+        <div class="sg-swatch__name">card-soft</div>
+        <div class="sg-swatch__hex">0 5px 20px rgba(90,27,188,.08)</div>
+      </div>
+      <div class="sg-shadow-demo" style="box-shadow:var(--pm-shadow-card)">
+        <div class="sg-swatch__name">card</div>
+        <div class="sg-swatch__hex">0 10px 30px rgba(90,27,188,.10) + contact</div>
+      </div>
+      <div class="sg-shadow-demo" style="box-shadow:var(--pm-shadow-card-strong)">
+        <div class="sg-swatch__name">card-strong</div>
+        <div class="sg-swatch__hex">0 10px 30px rgba(90,27,188,.15) + contact</div>
+      </div>
+      <div class="sg-shadow-demo" style="box-shadow:var(--pm-shadow-button-glow)">
+        <div class="sg-swatch__name">button-glow</div>
+        <div class="sg-swatch__hex">0 8px 25px rgba(126,45,247,.40)</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== FORMS ===================== -->
+  <section class="sg-block">
+    <h2>Forms</h2>
+    <p class="sg-note">Pill inputs. Glass on dark, white on light.</p>
+
+    <div class="sg-dark-demo" style="margin-bottom:1.5rem">
+      <div class="pm-texture"></div>
+      <form class="pm-form-row pm-layer" style="max-width:28rem" onsubmit="return false">
+        <input class="pm-field" type="email" placeholder="Join our sacred circle…">
+        <button class="pm-btn pm-btn--primary" type="submit">Subscribe</button>
+      </form>
+    </div>
+
+    <form class="pm-form-row" style="max-width:28rem" onsubmit="return false">
+      <input class="pm-field pm-field--light" type="email" placeholder="you@example.com">
+      <button class="pm-btn pm-btn--primary" type="submit">Subscribe</button>
+    </form>
+  </section>
+
+  <!-- ===================== MOTION ===================== -->
+  <section class="sg-block">
+    <h2>Motion</h2>
+    <p class="sg-note">
+      Four gestures and nothing more: lift, nudge, sweep, fade. 300ms
+      <code>cubic-bezier(.4,0,.2,1)</code> does most of the work.
+    </p>
+    <div class="sg-grid">
+      <div class="pm-card pm-lift">
+        <div class="sg-swatch__name">Lift</div>
+        <div class="pm-card__body">Hover — <code>translateY(-5px)</code>.</div>
+      </div>
+      <div class="pm-card pm-lift-group">
+        <div class="sg-swatch__name">Nudge</div>
+        <div class="pm-card__body">
+          <a class="pm-link" href="#">Read more
+            <svg class="pm-nudge" width="14" height="14" viewBox="0 0 24 24" fill="none"
+                 stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                 style="display:inline-block;vertical-align:-2px">
+              <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+          </a>
+        </div>
+      </div>
+      <div class="pm-card">
+        <div class="sg-swatch__name">Sweep</div>
+        <div class="pm-card__body"><a class="pm-underline pm-link" href="#">Hover this label</a></div>
+      </div>
+      <div class="pm-card pm-fade-in">
+        <div class="sg-swatch__name">Fade</div>
+        <div class="pm-card__body">One-shot reveal on load, 1s ease-in.</div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ===================== FOOTER ===================== -->
+<footer class="pm-footer">
+  <div class="pm-texture pm-texture--strong"></div>
+  <div class="pm-orb" style="top:0;left:0;width:10rem;height:10rem;transform:translate(-20%,-20%)"></div>
+  <div class="pm-orb pm-orb--teal" style="bottom:0;right:0;width:15rem;height:15rem;transform:translate(30%,30%)"></div>
+
+  <div class="pm-container pm-layer">
+    <div class="pm-section-header">
+      <h2 class="pm-h2 pm-glow-text">Plant Magic</h2>
+      <p style="color:var(--pm-body-on-dark)">
+        Bridging ancient wisdom and modern healing through community, ceremony,
+        and conscious connection.
+      </p>
+    </div>
+
+    <div class="pm-footer__grid">
+      <div>
+        <h3 class="pm-footer__heading">Sacred Spaces</h3>
+        <a class="pm-dot-link" href="#"><span>Plant Magic Café</span></a>
+        <a class="pm-dot-link pm-dot-link--purple" href="#"><span>Plant Magic Club</span></a>
+        <a class="pm-dot-link pm-dot-link--green" href="#"><span>Sanctuary</span></a>
+      </div>
+      <div>
+        <h3 class="pm-footer__heading">Experiences</h3>
+        <a class="pm-dot-link pm-dot-link--purple" href="#"><span>All Events</span></a>
+        <a class="pm-dot-link" href="#"><span>Sunday Service</span></a>
+        <a class="pm-dot-link pm-dot-link--green" href="#"><span>Ceremonies</span></a>
+      </div>
+      <div>
+        <h3 class="pm-footer__heading">Community</h3>
+        <a class="pm-dot-link pm-dot-link--green" href="#"><span>Rise Program</span></a>
+        <a class="pm-dot-link" href="#"><span>DAO</span></a>
+        <a class="pm-dot-link pm-dot-link--purple" href="#"><span>Volunteer</span></a>
+      </div>
+      <div>
+        <h3 class="pm-footer__heading">This System</h3>
+        <a class="pm-dot-link" href="../docs/01-color.md"><span>Color</span></a>
+        <a class="pm-dot-link pm-dot-link--purple" href="../docs/05-components.md"><span>Components</span></a>
+        <a class="pm-dot-link pm-dot-link--green" href="../tokens/tokens.json"><span>Tokens</span></a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Click-driven dropdowns — the design system's CSS supports both hover and
+  // data-open, but click is the accessible default.
+  document.querySelectorAll('.pm-menu-wrap > .pm-nav__link').forEach(function (trigger) {
+    var panel = trigger.parentElement.querySelector('.pm-menu');
+    if (!panel) return;
+    trigger.addEventListener('click', function (e) {
+      e.preventDefault();
+      var open = panel.dataset.open === 'true';
+      document.querySelectorAll('.pm-menu').forEach(function (p) { p.dataset.open = 'false'; });
+      panel.dataset.open = open ? 'false' : 'true';
+      trigger.setAttribute('aria-expanded', open ? 'false' : 'true');
+    });
+  });
+  // Mobile drawer.
+  var toggle = document.querySelector('.pm-nav__toggle');
+  var drawer = document.querySelector('.pm-nav__drawer');
+  if (toggle && drawer) {
+    toggle.addEventListener('click', function () {
+      var open = drawer.dataset.open === 'true';
+      drawer.dataset.open = open ? 'false' : 'true';
+      toggle.setAttribute('aria-expanded', open ? 'false' : 'true');
+    });
+  }
+
+  document.addEventListener('click', function (e) {
+    if (e.target.closest('.pm-menu-wrap')) return;
+    document.querySelectorAll('.pm-menu').forEach(function (p) { p.dataset.open = 'false'; });
+    document.querySelectorAll('.pm-menu-wrap > .pm-nav__link')
+      .forEach(function (t) { t.setAttribute('aria-expanded', 'false'); });
+  });
+</script>
+
+</body>
+</html>
