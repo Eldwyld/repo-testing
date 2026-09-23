@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Lightbox</title>
+  <meta name="description" content="A personal AI concepting canvas: generate, edit, combine and arrange images on an infinite board.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='3' y='6' width='26' height='20' rx='3' fill='%23E0382B'/%3E%3Crect x='8' y='11' width='16' height='10' rx='1.5' fill='%23fff'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<!-- ============ HOME ============ -->
+<main id="home" class="home" hidden>
+  <header class="home-top">
+    <a class="wordmark" href="#" aria-label="Lightbox home"><span class="mark" aria-hidden="true"></span>Lightbox</a>
+    <div class="home-top-actions">
+      <button class="btn ghost" id="home-import" type="button"><span data-icon="upload"></span>Import board</button>
+      <button class="icon-btn" id="home-settings" type="button" aria-label="Settings" title="Settings"><span data-icon="sliders"></span></button>
+    </div>
+  </header>
+
+  <section class="hero" aria-labelledby="hero-h">
+    <p class="eyebrow">Concepting canvas · Nano Banana</p>
+    <h1 id="hero-h">Start with a hunch.</h1>
+    <p class="lede">Describe the feeling you’re after. Lightbox plans a board of image directions and notes. Then you edit, combine and riff on them in plain language.</p>
+    <form class="starter" id="starter">
+      <label class="sr-only" for="starter-input">Describe an idea</label>
+      <textarea id="starter-input" rows="3" placeholder="An eerie, rain-soaked post-rock album cover: abandoned coastal observatory, cyan fog, grainy film texture…"></textarea>
+      <div class="starter-row">
+        <div class="chips" id="starter-chips" aria-label="Starter ideas"></div>
+        <div class="starter-actions">
+          <button class="btn ghost" type="button" id="new-blank">Blank board</button>
+          <button class="btn primary" type="submit" id="starter-go">Plan a board<span data-icon="send"></span></button>
+        </div>
+      </div>
+    </form>
+    <div class="key-callout" id="key-callout" hidden>
+      <p><strong>Before your first generation,</strong> add a Gemini API key. It stays in this browser.</p>
+      <button class="btn small" type="button" id="key-callout-btn">Add key</button>
+    </div>
+  </section>
+
+  <section class="boards" aria-labelledby="boards-h">
+    <div class="boards-head">
+      <h2 id="boards-h">Your boards</h2>
+      <span class="count" id="boards-count"></span>
+    </div>
+    <div class="board-grid" id="board-grid"></div>
+  </section>
+
+  <footer class="home-foot">
+    <p>Boards are saved in this browser. Use <em>Save board file</em> to back one up or move it to another machine.</p>
+  </footer>
+</main>
+
+<!-- ============ BOARD ============ -->
+<main id="board" class="board-view" hidden>
+  <div id="viewport" class="viewport" tabindex="-1" aria-label="Board canvas">
+    <div id="world" class="world"></div>
+    <div id="marquee" class="marquee" hidden></div>
+  </div>
+
+  <div id="empty-hint" class="empty-hint" hidden>
+    <p class="empty-title">An empty light table.</p>
+    <p>Describe an image below, drop or paste your own, or switch to <strong>Ideas</strong> and a board is planned for you.</p>
+    <p class="empty-keys"><kbd>Double-click</kbd> text · <kbd>Space</kbd> + drag to pan · <kbd>Ctrl/⌘</kbd> + scroll to zoom</p>
+  </div>
+
+  <header class="board-bar">
+    <div class="bar-group">
+      <a class="icon-btn" href="#" id="back-home" aria-label="All boards" title="All boards"><span data-icon="chevronLeft"></span></a>
+      <span class="mark" aria-hidden="true"></span>
+      <input id="board-name" class="board-name" type="text" aria-label="Board name" spellcheck="false" autocomplete="off">
+      <span id="save-status" class="save-status" aria-live="polite"></span>
+    </div>
+    <div class="bar-group">
+      <button class="icon-btn" id="btn-undo" type="button" aria-label="Undo" title="Undo (Ctrl/⌘ Z)" disabled><span data-icon="undo"></span></button>
+      <button class="icon-btn" id="btn-redo" type="button" aria-label="Redo" title="Redo (Shift Ctrl/⌘ Z)" disabled><span data-icon="redo"></span></button>
+      <span class="bar-sep" aria-hidden="true"></span>
+      <button class="btn small ghost" id="btn-board-menu" type="button" aria-haspopup="menu">Board<span data-icon="chevronDown"></span></button>
+      <button class="icon-btn" id="btn-settings" type="button" aria-label="Settings" title="Settings"><span data-icon="sliders"></span></button>
+    </div>
+  </header>
+
+  <nav class="tool-rail" aria-label="Tools">
+    <button class="tool" type="button" data-tool="select" aria-pressed="true" title="Select (V)" aria-label="Select"><span data-icon="pointer"></span></button>
+    <button class="tool" type="button" data-tool="hand" aria-pressed="false" title="Pan (H, or hold Space)" aria-label="Pan"><span data-icon="hand"></span></button>
+    <span class="rail-sep" aria-hidden="true"></span>
+    <button class="tool" type="button" id="tool-text" title="Text (T)" aria-label="Add text"><span data-icon="type"></span></button>
+    <button class="tool" type="button" id="tool-sticky" title="Card (S)" aria-label="Add card"><span data-icon="sticky"></span></button>
+    <button class="tool" type="button" id="tool-upload" title="Upload images (U)" aria-label="Upload images"><span data-icon="image"></span></button>
+  </nav>
+
+  <div class="zoom-ctl" role="group" aria-label="Zoom">
+    <button class="icon-btn" id="zoom-out" type="button" aria-label="Zoom out" title="Zoom out (−)"><span data-icon="minus"></span></button>
+    <button class="zoom-label" id="zoom-label" type="button" title="Reset to 100% (Ctrl/⌘ 0)">100%</button>
+    <button class="icon-btn" id="zoom-in" type="button" aria-label="Zoom in" title="Zoom in (+)"><span data-icon="plus"></span></button>
+    <button class="icon-btn" id="zoom-fit" type="button" aria-label="Fit everything" title="Fit everything (Shift 1)"><span data-icon="fit"></span></button>
+  </div>
+
+  <div id="ctx-bar" class="ctx-bar" role="toolbar" aria-label="Selection actions" hidden></div>
+
+  <form id="prompt" class="prompt" autocomplete="off">
+    <div id="prompt-refs" class="prompt-refs" hidden></div>
+    <label class="sr-only" for="prompt-input">Prompt</label>
+    <textarea id="prompt-input" rows="1" placeholder="Describe an image to generate…"></textarea>
+    <div class="prompt-row">
+      <div class="seg" id="prompt-mode" role="group" aria-label="Mode">
+        <button type="button" data-mode="images" aria-pressed="true" title="Generate or edit images">Images</button>
+        <button type="button" data-mode="ideas" aria-pressed="false" title="Plan a cluster of images and notes from an idea">Ideas</button>
+      </div>
+      <label class="pick" id="pick-ratio">
+        <span class="sr-only">Aspect ratio</span>
+        <select id="prompt-ratio">
+          <option value="auto">Auto</option>
+          <option value="1:1">1:1</option>
+          <option value="4:5">4:5</option>
+          <option value="3:4">3:4</option>
+          <option value="2:3">2:3</option>
+          <option value="9:16">9:16</option>
+          <option value="5:4">5:4</option>
+          <option value="4:3">4:3</option>
+          <option value="3:2">3:2</option>
+          <option value="16:9">16:9</option>
+          <option value="21:9">21:9</option>
+        </select>
+      </label>
+      <label class="pick" id="pick-count">
+        <span class="sr-only">How many images</span>
+        <select id="prompt-count">
+          <option value="1">×1</option>
+          <option value="2">×2</option>
+          <option value="3">×3</option>
+          <option value="4">×4</option>
+        </select>
+      </label>
+      <span class="prompt-hint" id="prompt-hint" hidden>Plans 6 images + notes</span>
+      <span class="spacer"></span>
+      <button type="submit" class="go" id="prompt-go" disabled><span id="prompt-go-label">Generate</span><span data-icon="send"></span></button>
+    </div>
+  </form>
+</main>
+
+<!-- ============ VIEWER ============ -->
+<div id="viewer" class="viewer" role="dialog" aria-modal="true" aria-label="Image viewer" hidden>
+  <div class="viewer-stage">
+    <img id="viewer-img" alt="">
+    <button class="viewer-nav prev" id="viewer-prev" type="button" aria-label="Previous image"><span data-icon="chevronLeft"></span></button>
+    <button class="viewer-nav next" id="viewer-next" type="button" aria-label="Next image"><span data-icon="chevronRight"></span></button>
+  </div>
+  <aside class="viewer-side">
+    <div class="viewer-head">
+      <span class="viewer-frame" id="viewer-frame"></span>
+      <button class="icon-btn" id="viewer-close" type="button" aria-label="Close viewer" title="Close (Esc)"><span data-icon="x"></span></button>
+    </div>
+    <div id="viewer-info" class="viewer-info"></div>
+    <div class="viewer-actions">
+      <button class="btn primary" id="viewer-use" type="button">Use as reference</button>
+      <button class="btn ghost" id="viewer-reuse" type="button">Reuse prompt</button>
+      <button class="btn ghost" id="viewer-download" type="button"><span data-icon="download"></span>Download</button>
+    </div>
+  </aside>
+</div>
+
+<!-- ============ SETTINGS ============ -->
+<dialog id="settings" class="dialog" aria-labelledby="settings-h">
+  <form method="dialog" class="dialog-body">
+    <div class="dialog-head">
+      <h2 id="settings-h">Settings</h2>
+      <button class="icon-btn" value="close" aria-label="Close settings"><span data-icon="x"></span></button>
+    </div>
+    <p class="callout" id="settings-callout" hidden>Add a Gemini API key to start generating.</p>
+
+    <fieldset>
+      <legend>Gemini API key</legend>
+      <div class="field-row">
+        <input id="set-key" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your key">
+        <button class="btn small ghost" type="button" id="set-key-show">Show</button>
+      </div>
+      <p class="help">Create one at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a>. It’s stored only in this browser, and requests go straight from here to Google. Image models generally need billing enabled on the key’s project.</p>
+      <div class="field-row">
+        <button class="btn small" type="button" id="set-check">Check key &amp; load models</button>
+        <span class="check-status" id="set-check-status" aria-live="polite"></span>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Models</legend>
+      <label class="field"><span>Image model</span><input id="set-image-model" list="dl-image-models" spellcheck="false" autocomplete="off"></label>
+      <label class="field"><span>Text model <em>for planning &amp; style guides</em></span><input id="set-text-model" list="dl-text-models" spellcheck="false" autocomplete="off"></label>
+      <label class="field"><span>Output size</span>
+        <select id="set-size">
+          <option value="default">Model default</option>
+          <option value="1K">1K</option>
+          <option value="2K">2K</option>
+          <option value="4K">4K (Pro)</option>
+        </select>
+      </label>
+      <datalist id="dl-image-models"></datalist>
+      <datalist id="dl-text-models"></datalist>
+    </fieldset>
+
+    <fieldset>
+      <legend>Canvas</legend>
+      <label class="field"><span>Scroll wheel</span>
+        <select id="set-wheel">
+          <option value="pan">Pans (trackpad style)</option>
+          <option value="zoom">Zooms (mouse style)</option>
+        </select>
+      </label>
+      <label class="field"><span>Theme</span>
+        <select id="set-theme">
+          <option value="system">Match system</option>
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
+      </label>
+    </fieldset>
+
+    <p class="help" id="set-storage"></p>
+    <div class="dialog-foot">
+      <button class="btn primary" value="close">Done</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="ask" class="dialog is-small" aria-labelledby="ask-title">
+  <form method="dialog" class="dialog-body">
+    <h2 id="ask-title"></h2>
+    <p id="ask-body" class="help"></p>
+    <input id="ask-input" type="text" autocomplete="off" aria-labelledby="ask-title" hidden>
+    <div class="dialog-foot">
+      <button class="btn primary" value="ok" id="ask-ok">OK</button>
+      <button class="btn ghost" value="cancel" formnovalidate>Cancel</button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toasts" class="toasts" aria-live="polite"></div>
+<input type="file" id="file-input" accept="image/*" multiple hidden>
+<input type="file" id="import-input" accept=".json,application/json" hidden>
+
+<script src="js/util.js"></script>
+<script src="js/store.js"></script>
+<script src="js/gemini.js"></script>
+<script src="js/canvas.js"></script>
+<script src="js/actions.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
