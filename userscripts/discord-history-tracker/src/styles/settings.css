@@ -1,0 +1,37 @@
+#dht-cfg-overlay {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #000;
+  opacity: 0.5;
+  display: block;
+  z-index: 1000001;
+}
+
+#dht-cfg {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 800px;
+  max-width: calc(100% - 32px);
+  box-sizing: border-box;
+  transform: translate(-50%, -50%);
+  line-height: 120%;
+  padding: 8px;
+  background-color: #fff;
+  color: #000;
+  font-size: 14px;
+  z-index: 1000002;
+}
+
+#dht-cfg label {
+  display: inline-block;
+  margin: 1px 0;
+}
+
+#dht-cfg-note {
+  margin: 12px 0 0;
+  color: #555;
+}
