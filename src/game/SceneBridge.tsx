@@ -8,6 +8,7 @@ const routeToScene: Record<string, string> = {
   '/': 'home',
   '/play': 'game',
   '/end': 'end',
+  '/forge/play': 'game',
 };
 
 const sceneToRoute: Record<string, string> = {

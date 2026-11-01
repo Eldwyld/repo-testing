@@ -25,7 +25,7 @@ export interface Validator<T> {
 
 export type Infer<V> = V extends Validator<infer T> ? T : never;
 
-type Simplify<T> = { [K in keyof T]: T[K] } & {};
+type Simplify<T> = { [K in keyof T]: T[K] };
 type OptionalKeys<S> = { [K in keyof S]: undefined extends Infer<S[K]> ? K : never }[keyof S];
 /** Object output type: fields whose validator admits `undefined` become optional (`?:`). */
 export type ObjectOut<S> = Simplify<

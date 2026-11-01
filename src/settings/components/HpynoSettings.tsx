@@ -7,10 +7,10 @@ import {
 } from '../../types';
 import { useSetting } from '../SettingsProvider';
 import {
-  faCat,
-  faCow,
-  faDog,
-  faOtter,
+  faVenus,
+  faSeedling,
+  faMars,
+  faHandSparkles,
   faPowerOff,
 } from '@fortawesome/free-solid-svg-icons';
 
@@ -37,13 +37,13 @@ export const HypnoSettings = () => {
                   case GameHypnoType.off:
                     return <FontAwesomeIcon icon={faPowerOff} />;
                   case GameHypnoType.joi:
-                    return <FontAwesomeIcon icon={faOtter} />;
+                    return <FontAwesomeIcon icon={faHandSparkles} />;
                   case GameHypnoType.breeding:
-                    return <FontAwesomeIcon icon={faCow} />;
+                    return <FontAwesomeIcon icon={faSeedling} />;
                   case GameHypnoType.maledom:
-                    return <FontAwesomeIcon icon={faDog} />;
+                    return <FontAwesomeIcon icon={faMars} />;
                   case GameHypnoType.femdom:
-                    return <FontAwesomeIcon icon={faCat} />;
+                    return <FontAwesomeIcon icon={faVenus} />;
                 }
               })()}
             </span>

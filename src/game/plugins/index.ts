@@ -18,6 +18,7 @@ import Rand from './rand';
 import Sound from './sound';
 import Messages from './messages';
 import Toy from './toy';
+import Forge from './forge';
 
 const plugins = [
   Scene,
@@ -32,6 +33,7 @@ const plugins = [
   Pause,
   Saves,
   Classic,
+  Forge,
   Toy,
   Fps,
   PerfOverlay,

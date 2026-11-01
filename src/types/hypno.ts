@@ -10,16 +10,16 @@ export const GameHypnoLabels: Record<GameHypnoType, string> = {
   off: 'Off',
   joi: 'JOI',
   breeding: 'Breeding',
-  maledom: 'Maledom Pet',
-  femdom: 'Femdom Pet',
+  maledom: 'Maledom',
+  femdom: 'Femdom',
 };
 
 export const GameHypnoDescriptions: Record<GameHypnoType, string> = {
   off: 'Turn off the hypnosis all-together',
   joi: 'Focus on masturbation encouragement',
   breeding: 'Focus on breeding and primal urge',
-  maledom: "Good pets get master's treats",
-  femdom: "Good pets get mistress' treats",
+  maledom: 'Obedience to a master',
+  femdom: 'Obedience to a mistress',
 };
 
 export const HypnoPhrases: Record<GameHypnoType, string[]> = {
@@ -68,7 +68,6 @@ export const HypnoPhrases: Record<GameHypnoType, string[]> = {
   ],
   maledom: [
     'good $player',
-    'hump',
     'listen',
     'stare',
     'obey',
@@ -83,7 +82,6 @@ export const HypnoPhrases: Record<GameHypnoType, string[]> = {
     'good $player',
     'good $player',
     'good $player',
-    'animal',
     'only',
     'master',
     'give master',
@@ -98,7 +96,6 @@ export const HypnoPhrases: Record<GameHypnoType, string[]> = {
   ],
   femdom: [
     'good $player',
-    'hump',
     'obey',
     'listen',
     'stare',
@@ -113,7 +110,6 @@ export const HypnoPhrases: Record<GameHypnoType, string[]> = {
     'good $player',
     'good $player',
     'good $player',
-    'animal',
     'only',
     'mistress',
     'give mistress',

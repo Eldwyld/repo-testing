@@ -13,5 +13,5 @@ export const PlayerGenderLabels: Record<PlayerGender, string> = {
 export const PlayerGenderDescriptions: Record<PlayerGender, string> = {
   male: 'Refer to you as male (he/him/boy)',
   female: 'Refer to you as female (she/her/girl)',
-  other: 'Refer to you neutrally (they/them/pup)',
+  other: 'Refer to you neutrally (they/them)',
 };

@@ -7,45 +7,45 @@ import Phase, { GamePhase } from '../phase';
 import Rand from '../rand';
 import { PLUGIN_ID, outcomeDone } from './types';
 
-export enum Paws {
+export enum Hands {
   left = 'left',
   right = 'right',
   both = 'both',
 }
 
-export const PawLabels: Record<Paws, string> = {
+export const HandLabels: Record<Hands, string> = {
   left: 'Left',
   right: 'Right',
   both: 'Both',
 };
 
-export const pawsPath = typedPath<Paws>([PLUGIN_ID, 'paws']);
+export const handsPath = typedPath<Hands>([PLUGIN_ID, 'hands']);
 
-const allPaws = Object.values(Paws);
+const allHands = Object.values(Hands);
 
 const seq = Sequence.for(PLUGIN_ID, 'randomGrip');
 
-const regrip = (then: (paws: Paws) => Pipe): Pipe =>
+const regrip = (then: (hands: Hands) => Pipe): Pipe =>
   Composer.do(({ get, set, pipe, take }) => {
-    const current = get(pawsPath);
-    const others = allPaws.filter(p => p !== current);
-    const next = take<Paws>(fn => Rand.pick(others, fn));
-    set(pawsPath, next);
+    const current = get(handsPath);
+    const others = allHands.filter(p => p !== current);
+    const next = take<Hands>(fn => Rand.pick(others, fn));
+    set(handsPath, next);
     pipe(then(next));
   });
 
 export const randomGripModule: Module = {
   id: `${PLUGIN_ID}.random_grip`,
   ordering: { loadAfter: [PLUGIN_ID] },
-  activate: Rand.pick(allPaws, paw => Composer.set(pawsPath, paw)),
-  deactivate: Composer.set(pawsPath, undefined),
+  activate: Rand.pick(allHands, hand => Composer.set(handsPath, hand)),
+  deactivate: Composer.set(handsPath, undefined),
   update: Composer.pipe(
     Phase.onEnter(GamePhase.active, () => regrip(() => Composer.pipe())),
     seq.on(() =>
-      regrip(newPaws =>
+      regrip(newHands =>
         Composer.pipe(
           seq.message({
-            title: `Grip changed to ${PawLabels[newPaws]}!`,
+            title: `Grip changed to ${HandLabels[newHands]}!`,
             duration: 5000,
           }),
           seq.after(10000, 'done')

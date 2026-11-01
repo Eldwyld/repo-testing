@@ -31,7 +31,7 @@ export const useTranslate = (): ((value: string) => string) => {
           player: {
             male: 'boy',
             female: 'girl',
-            other: 'pup',
+            other: 'toy',
           }[gender],
           master: {
             off: '',
@@ -44,8 +44,8 @@ export const useTranslate = (): ((value: string) => string) => {
             off: 'hands',
             joi: 'hands',
             breeding: 'hands',
-            maledom: 'paws',
-            femdom: 'paws',
+            maledom: 'hands',
+            femdom: 'hands',
           }[hypno],
           part: {
             penis: 'cock',
@@ -54,8 +54,8 @@ export const useTranslate = (): ((value: string) => string) => {
           }[body],
           stroke: {
             penis: 'stroke',
-            vagina: 'paw',
-            neuter: 'paw',
+            vagina: 'rub',
+            neuter: 'touch',
           }[body],
         })
       ),

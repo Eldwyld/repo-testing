@@ -24,8 +24,8 @@ export const DiceEventLabels: Record<DiceEvent, string> = {
 
 export const DiceEventDescriptions: Record<DiceEvent, string> = {
   randomPace: 'Randomly select a new pace',
-  halfPace: 'Paw at half the current pace for a few seconds',
-  doublePace: 'Paw at twice the current pace for a few seconds',
+  halfPace: 'Stroke at half the current pace for a few seconds',
+  doublePace: 'Stroke at twice the current pace for a few seconds',
   risingPace: 'Start from your lowest and slowly pick up speed',
   pause: 'Stop stroking for a little bit',
   climax: 'Creates an end point to the game',

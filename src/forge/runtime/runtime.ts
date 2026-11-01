@@ -806,7 +806,12 @@ export class SessionRuntime {
 
   // ------------------------------------------------------------------ view
 
+  /** A detached snapshot (safe to freeze or store). */
   get view(): RuntimeView {
+    return structuredClone(this.snapshot());
+  }
+
+  private snapshot(): RuntimeView {
     const top = this.engine.frames[this.engine.frames.length - 1];
     const runningId = top?.kind === 'event' ? top.eventId : top?.kind === 'sequence' ? top.sequenceId : undefined;
     const limit = this.config.safety.maxDurationMinutes * 60000;

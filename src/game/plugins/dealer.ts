@@ -216,5 +216,5 @@ declare module '../../engine/sdk' {
 
 export default Dealer;
 
-export { Paws, PawLabels, pawsPath } from './dice/randomGrip';
+export { Hands, HandLabels, handsPath } from './dice/randomGrip';
 export { type DiceState } from './dice/types';

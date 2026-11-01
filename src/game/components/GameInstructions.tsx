@@ -15,7 +15,7 @@ import { WaDivider } from '@awesome.me/webawesome/dist/react';
 import { useGameFrame } from '../hooks';
 import Pace from '../plugins/pace';
 import Intensity from '../plugins/intensity';
-import { Paws, PawLabels, pawsPath } from '../plugins/dealer';
+import { Hands, HandLabels, handsPath } from '../plugins/dealer';
 
 const StyledGameInstructions = styled.div`
   display: flex;
@@ -87,18 +87,18 @@ const PaceDisplay = () => {
 };
 
 const GripDisplay = () => {
-  const paws = useGameFrame(pawsPath) ?? Paws.both;
+  const hands = useGameFrame(handsPath) ?? Hands.both;
 
   return (
     <StyledGripIcons>
-      <StyledActiveIcon $active={paws === Paws.left || paws === Paws.both}>
+      <StyledActiveIcon $active={hands === Hands.left || hands === Hands.both}>
         <FontAwesomeIcon style={{ transform: 'scaleX(-1)' }} icon={faHand} />
       </StyledActiveIcon>
-      <StyledActiveIcon $active={paws === Paws.right || paws === Paws.both}>
+      <StyledActiveIcon $active={hands === Hands.right || hands === Hands.both}>
         <FontAwesomeIcon icon={faHand} />
       </StyledActiveIcon>
       <StyledInfoText>
-        <strong>{PawLabels[paws]}</strong>
+        <strong>{HandLabels[hands]}</strong>
       </StyledInfoText>
     </StyledGripIcons>
   );

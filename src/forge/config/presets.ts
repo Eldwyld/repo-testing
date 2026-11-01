@@ -52,8 +52,10 @@ export function capturePreset(config: ForgeConfig, opts: { id: string; name: str
     data = {};
     for (const path of Array.isArray(def.path) ? def.path : [def.path]) data = setPath(data, path, getPath(config, path));
   } else {
-    const { kind: _k, schemaVersion: _s, ...rest } = config;
-    data = rest as Record<string, unknown>;
+    const rest: Record<string, unknown> = { ...config };
+    delete rest.kind;
+    delete rest.schemaVersion;
+    data = rest;
   }
   return {
     kind: 'forge.preset',

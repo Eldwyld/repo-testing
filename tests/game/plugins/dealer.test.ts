@@ -175,7 +175,7 @@ describe('Dealer integration', () => {
 
   it('should regrip silently whenever the phase returns to active', () => {
     let frame = startGame();
-    const before = (frame as any).core.dice.paws;
+    const before = (frame as any).core.dice.hands;
     const logBefore = getDiceState(frame)!.log.length;
 
     frame = withImpulse(Phase.setPhase(GamePhase.break))(tick(frame, 1));
@@ -184,7 +184,7 @@ describe('Dealer integration', () => {
     frame = gamePipe(tick(frame, 1));
     frame = gamePipe(tick(frame, 1));
 
-    expect((frame as any).core.dice.paws).not.toBe(before);
+    expect((frame as any).core.dice.hands).not.toBe(before);
     expect(getDiceState(frame)!.log).toHaveLength(logBefore);
   });
 
