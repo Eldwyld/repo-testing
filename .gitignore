@@ -24,3 +24,5 @@ coverage
 *.sln
 *.sw?
 e2e/screenshots/
+dist-offline/
+release/

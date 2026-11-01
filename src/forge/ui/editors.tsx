@@ -61,6 +61,7 @@ import {
   Toggle,
 } from './components';
 import { EventEditor } from './EventEditor';
+import { MediaLibrary } from './MediaLibrary';
 
 export type EditorProps = {
   config: ForgeConfig;
@@ -2524,6 +2525,7 @@ function MediaEditor({ config, compiled, update }: EditorProps) {
   const m = config.media;
   return (
     <div className='stack'>
+      <MediaLibrary mode='full' config={config} update={update} />
       <p className='muted'>
         Media ids look like <code>local:&lt;hash&gt;</code> or{' '}
         <code>e621:&lt;post id&gt;</code>. The current media id is shown in the

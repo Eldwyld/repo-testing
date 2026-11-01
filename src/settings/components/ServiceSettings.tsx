@@ -5,6 +5,7 @@ import { LocalImport } from '../../local';
 import { WaTabGroup, WaTab } from '@awesome.me/webawesome/dist/react';
 import styled from 'styled-components';
 import { Fields } from '../../common';
+import { OFFLINE_BUILD } from '../../utils/offline';
 
 const tabs: Record<
   string,
@@ -52,7 +53,9 @@ const StyledServiceSettingsTabs = styled.div`
 `;
 
 export const ServiceSettings = () => {
-  const [activeTab, setActiveTab] = useState<Tab>('e621');
+  const [activeTab, setActiveTab] = useState<Tab>(
+    OFFLINE_BUILD ? 'local' : 'e621'
+  );
 
   return (
     <StyledServiceFields
@@ -61,6 +64,8 @@ export const ServiceSettings = () => {
           <WaTabGroup onWaTabShow={event => setActiveTab(event.detail.name)}>
             {Object.keys(tabs)
               .filter(key => key !== 'walltaker') // not ready
+              // The offline build only offers media from this device.
+              .filter(key => !OFFLINE_BUILD || key === 'local')
               .map(tab => (
                 <WaTab key={tab} panel={tab} active={activeTab === tab}>
                   {tabs[tab].label}

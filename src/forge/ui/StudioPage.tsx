@@ -28,6 +28,8 @@ import './forge.css';
 import './theme-sticker.css';
 import { StickerEmblem } from './StickerEmblem';
 import { FORGE_BUILD } from '../buildInfo';
+import { OFFLINE_BUILD } from '../../utils/offline';
+import { MediaLibrary } from './MediaLibrary';
 
 type Tab = 'setup' | 'settings' | 'history' | 'io';
 
@@ -254,6 +256,7 @@ function Setup({ onEdit }: { onEdit: (categoryId: string) => void }) {
   return (
     <div className='stack'>
       <Summary />
+      <MediaLibrary />
       <div className='row'>
         <button type='button' onClick={() => onEdit('session.identity')}>
           Change identity
@@ -729,6 +732,7 @@ function Studio() {
           </Link>
           <span className='muted' title='Commit this build was made from'>
             build {FORGE_BUILD}
+            {OFFLINE_BUILD ? ' · offline' : ''}
           </span>
         </div>
         {saveError && (

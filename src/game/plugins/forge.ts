@@ -38,6 +38,8 @@ export type ForgeFrame = {
   /** Engine pause value seen on the previous tick (edge detection). */
   lastEnginePaused?: boolean;
   lastStatus?: RuntimeView['status'];
+  /** The slideshow has been started for this session. */
+  slideshowStarted?: boolean;
 };
 
 export const forgePaths = pluginPaths<ForgeFrame>(BRIDGE_ID);
@@ -46,6 +48,7 @@ const intensityPath = typedPath<{ intensity: number }>(['core.intensity']);
 const pacePath = typedPath<number>(['core.pace', 'pace']);
 const phasePath = typedPath<string>(['core.phase', 'current']);
 const pausedPath = typedPath<boolean>(['core.pause', 'paused']);
+const imagesPath = typedPath<unknown[]>(['images']);
 
 const Bridge: Module = {
   id: BRIDGE_ID,
@@ -68,6 +71,13 @@ const Bridge: Module = {
     }
 
     rt.tick(get(timing.step));
+
+    // Start the image/video slideshow once media is available (the classic
+    // mode does this from its dice dealer, which Forge mode does not load).
+    if (!state.slideshowStarted && (get(imagesPath)?.length ?? 0) > 0) {
+      set(forgePaths.slideshowStarted, true);
+      pipe(RandomImages.start());
+    }
     const view = rt.view;
 
     // Edge-triggered runtime -> engine sync (runtime pauses, scheduled breaks, end).
@@ -110,6 +120,7 @@ const run: Module[] = [Clock, Pace, Stroke, RandomImages, Cues, Bridge];
 
 const start = Composer.pipe(...run.map(ModuleManager.load));
 const stop = Composer.pipe(
+  RandomImages.stop(),
   ...run.map(m => ModuleManager.unload(m.id)),
   Composer.set(intensityPath, undefined)
 );

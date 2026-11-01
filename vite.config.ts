@@ -1,4 +1,5 @@
 import { defineConfig } from 'vitest/config';
+import type { Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { execSync } from 'node:child_process';
 
@@ -29,7 +30,41 @@ const allowedHosts: true | string[] | undefined = !envHosts
         .filter(Boolean);
 
 // https://vitejs.dev/config/
-export default defineConfig({
+// Offline build: only local media, and the browser is told to refuse every
+// network request that is not to this machine (Intiface toys use a local
+// websocket, so ws://localhost is allowed).
+const OFFLINE_CSP = [
+  "default-src 'self'",
+  // The image resizer (pica) compiles WebAssembly and starts an inline worker
+  // to make thumbnails locally; neither can reach the network.
+  "script-src 'self' 'wasm-unsafe-eval'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob:",
+  "media-src 'self' data: blob:",
+  "font-src 'self' data:",
+  "connect-src 'self' data: blob: ws://localhost:* ws://127.0.0.1:*",
+  "worker-src 'self' blob: data:",
+  "manifest-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-src 'none'",
+].join('; ');
+
+const offlineHtml = (): Plugin => ({
+  name: 'forge-offline-html',
+  transformIndexHtml(html) {
+    return html
+      .replace(
+        '<meta charset="UTF-8" />',
+        `<meta charset="UTF-8" />\n    <meta http-equiv="Content-Security-Policy" content="${OFFLINE_CSP}" />`
+      )
+      .replace(/\s*<meta\s+(property|name)="(og|twitter):[^>]*>/g, '')
+      .replace('<title>JOI.how</title>', '<title>JOI Forge (offline)</title>');
+  },
+});
+
+export default defineConfig(({ mode }) => ({
   plugins: [
     react({
       babel: {
@@ -38,6 +73,7 @@ export default defineConfig({
         ],
       },
     }),
+    ...(mode === 'offline' ? [offlineHtml()] : []),
   ],
   define: {
     __FORGE_BUILD__: JSON.stringify(forgeBuild),
@@ -52,7 +88,10 @@ export default defineConfig({
     ...(allowedHosts ? { allowedHosts } : {}),
   },
   build: {
-    sourcemap: true,
+    sourcemap: mode !== 'offline',
+    ...(mode === 'offline'
+      ? { outDir: 'dist-offline/app', emptyOutDir: true }
+      : {}),
   },
   optimizeDeps: {
     esbuildOptions: {
@@ -71,4 +110,4 @@ export default defineConfig({
       exclude: ['src/**/*.d.ts', 'tests/**/*.test.ts'],
     },
   },
-});
+}));

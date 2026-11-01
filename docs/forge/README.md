@@ -23,6 +23,9 @@ and full session logging and replay. Everything is local-first: there is no serv
 **In Google Colab:** see [colab.md](colab.md). One `%%bash` cell builds the app and prints a public `/forge`
 link.
 
+**Offline, local media only:** see [offline.md](offline.md). Download the packaged folder from GitHub Actions
+and double-click a launcher; no internet and no install needed on Windows.
+
 **On your own computer:**
 
 Requires Node ≥ 20.

@@ -1,6 +1,7 @@
 import styled from 'styled-components';
 import { Link } from 'react-router-dom';
 import { FORGE_BUILD } from '../../forge/buildInfo';
+import { OFFLINE_BUILD } from '../../utils/offline';
 
 /**
  * Entry point from the original home page into the Forge studio. The classic
@@ -58,6 +59,8 @@ export const ForgeEntry = () => (
     <p>
       Configurable identities, narration, events and session replay. The classic
       slideshow below is unchanged. Forge build {FORGE_BUILD}.
+      {OFFLINE_BUILD &&
+        ' Offline build: only images and videos from this device are used.'}
     </p>
   </StyledForgeEntry>
 );

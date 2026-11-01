@@ -6,6 +6,7 @@
 | Forge unit tests (deterministic logic)                    | Vitest                  | `tests/forge/identity`, `narrative`, `events`, `config` | 89                                             |
 | Forge integration tests (full runtime workflows, storage) | Vitest + fake-indexeddb | `tests/forge/runtime.test.ts`                           | 30                                             |
 | Browser smoke test (built app)                            | Playwright + Chromium   | `e2e/forge-smoke.cjs`                                   | 1 scripted run                                 |
+| Offline package smoke test (network blocked)              | Playwright + Chromium   | `e2e/offline-smoke.cjs` (runs in CI)                    | 1 scripted run                                 |
 
 Total: **42 test files, 495 tests, all passing.** In addition, `npm run lint` (`--max-warnings 0`), `tsc` and
 `vite build` all pass.
