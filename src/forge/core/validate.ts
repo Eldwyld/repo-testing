@@ -25,6 +25,13 @@ export interface Validator<T> {
 
 export type Infer<V> = V extends Validator<infer T> ? T : never;
 
+type Simplify<T> = { [K in keyof T]: T[K] } & {};
+type OptionalKeys<S> = { [K in keyof S]: undefined extends Infer<S[K]> ? K : never }[keyof S];
+/** Object output type: fields whose validator admits `undefined` become optional (`?:`). */
+export type ObjectOut<S> = Simplify<
+  { [K in Exclude<keyof S, OptionalKeys<S>>]: Infer<S[K]> } & { [K in OptionalKeys<S>]?: Infer<S[K]> }
+>;
+
 const join = (path: string, key: string | number) =>
   typeof key === 'number' ? `${path}[${key}]` : path ? `${path}.${key}` : key;
 
@@ -143,7 +150,7 @@ export const v = {
     shape: S,
     opts: { strict?: boolean } = {}
   ) {
-    type Out = { [K in keyof S]: Infer<S[K]> };
+    type Out = ObjectOut<S>;
     return make<Out>('object', (input, path, issues) => {
       if (typeof input !== 'object' || input === null || Array.isArray(input)) {
         issues.push({ path, message: `expected object, got ${typeName(input)}` });
@@ -174,6 +181,22 @@ export const v = {
       }
       issues.push(...(best ?? [{ path, message: 'no union member matched' }]));
       return undefined as Infer<T[number]>;
+    });
+  },
+
+  /** Tagged union: picks the variant by `input[key]` for precise errors. */
+  discriminated<K extends string, M extends Record<string, Validator<any>>>(key: K, variants: M) {
+    return make<Infer<M[keyof M]>>(`{${key}: ${Object.keys(variants).join(' | ')}}`, (input, path, issues) => {
+      const tag = typeof input === 'object' && input !== null ? (input as Record<string, unknown>)[key] : undefined;
+      const variant = typeof tag === 'string' ? variants[tag] : undefined;
+      if (!variant) {
+        issues.push({
+          path: join(path, key),
+          message: `expected one of ${Object.keys(variants).join(', ')}, got ${JSON.stringify(tag)}`,
+        });
+        return undefined as Infer<M[keyof M]>;
+      }
+      return variant.check(input, path, issues);
     });
   },
 

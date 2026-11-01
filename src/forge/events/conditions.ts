@@ -67,7 +67,7 @@ export const conditionV: Validator<Condition> = v.lazy(() =>
 ) as Validator<Condition>;
 
 /** Known field roots; anything else is reported by the validator as a warning. */
-export const FIELD_ROOTS = ['session', 'identity', 'styles', 'media', 'history', 'stats', 'vars', 'event'] as const;
+export const FIELD_ROOTS = ['session', 'identity', 'styles', 'media', 'history', 'stats', 'vars', 'answers', 'event'] as const;
 
 export const FIELD_DOCS: Record<string, string> = {
   'session.intensity': 'Current intensity, 0–10',
@@ -89,7 +89,9 @@ export const FIELD_DOCS: Record<string, string> = {
   'history.count.<eventId>': 'How many times an event ran',
   'history.total': 'Total events run',
   'stats.<name>': 'User-defined statistic counters',
-  'vars.<name>': 'Sequence variables',
+  'vars.<name>': 'Sequence variables (vars.climaxResult is set by the climax step)',
+  'answers.<id>': 'Latest response value of a check or prompt',
+  'event.iteration': 'Current loop iteration of the running event',
 };
 
 export type ConditionScope = Record<string, unknown>;
