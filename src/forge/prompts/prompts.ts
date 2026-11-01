@@ -60,7 +60,9 @@ export const promptTemplateV = v.object({
 });
 export type PromptTemplate = Infer<typeof promptTemplateV>;
 
-const P = (p: Partial<PromptTemplate> & Pick<PromptTemplate, 'id' | 'name' | 'text'>): PromptTemplate => ({
+const P = (
+  p: Partial<PromptTemplate> & Pick<PromptTemplate, 'id' | 'name' | 'text'>
+): PromptTemplate => ({
   enabled: true,
   triggers: [],
   identityText: {},
@@ -121,13 +123,39 @@ export const DEFAULT_PROMPTS: PromptTemplate[] = [
 const PRONOUNS: Record<GrammaticalPerson, string[]> = {
   first: ['i', 'me', 'my', 'mine', 'myself', "i'm", "i've", 'we', 'us', 'our'],
   second: ['you', 'your', 'yours', 'yourself', "you're"],
-  third: ['it', 'its', 'itself', 'he', 'him', 'his', 'she', 'her', 'hers', 'they', 'them', 'their', 'theirs', 'themself', 'xe', 'xem', 'xyr', 'the'],
+  third: [
+    'it',
+    'its',
+    'itself',
+    'he',
+    'him',
+    'his',
+    'she',
+    'her',
+    'hers',
+    'they',
+    'them',
+    'their',
+    'theirs',
+    'themself',
+    'xe',
+    'xem',
+    'xyr',
+    'the',
+  ],
 };
 
-export function detectPerspective(text: string, objectNouns: string[] = []): GrammaticalPerson | null {
+export function detectPerspective(
+  text: string,
+  objectNouns: string[] = []
+): GrammaticalPerson | null {
   const words = text.toLowerCase().match(/[a-z']+/g) ?? [];
   const nouns = objectNouns.map(n => n.toLowerCase());
-  const score: Record<GrammaticalPerson, number> = { first: 0, second: 0, third: 0 };
+  const score: Record<GrammaticalPerson, number> = {
+    first: 0,
+    second: 0,
+    third: 0,
+  };
   words.forEach((w, i) => {
     for (const p of GRAMMATICAL_PERSONS) {
       if (p === 'third' && w === 'the') {
@@ -137,17 +165,27 @@ export function detectPerspective(text: string, objectNouns: string[] = []): Gra
       if (PRONOUNS[p].includes(w)) score[p]++;
     }
   });
-  const best = (Object.keys(score) as GrammaticalPerson[]).sort((a, b) => score[b] - score[a])[0];
+  const best = (Object.keys(score) as GrammaticalPerson[]).sort(
+    (a, b) => score[b] - score[a]
+  )[0];
   return score[best] > 0 ? best : null;
 }
 
-export function vocabularyMatches(text: string, words: readonly string[]): string[] {
+export function vocabularyMatches(
+  text: string,
+  words: readonly string[]
+): string[] {
   const norm = ` ${normalizeForGuard(text)} `;
   const found = new Set<string>();
   for (const w of words) {
     const nw = normalizeForGuard(w);
     if (nw && norm.includes(` ${nw} `)) found.add(w);
-    else if (nw && nw.split(' ').length === 1 && new RegExp(`\\b${nw}(s|es|ed|ing)?\\b`).test(norm)) found.add(w);
+    else if (
+      nw &&
+      nw.split(' ').length === 1 &&
+      new RegExp(`\\b${nw}(s|es|ed|ing)?\\b`).test(norm)
+    )
+      found.add(w);
   }
   return [...found];
 }
@@ -166,11 +204,18 @@ export function validateResponse(
 ): PromptValidation {
   const problems: string[] = [];
   const trimmed = text.trim();
-  if (trimmed.length < prompt.minLength) problems.push(`Write at least ${prompt.minLength} characters (${trimmed.length} so far).`);
-  if (trimmed.length > prompt.maxLength) problems.push(`Keep it under ${prompt.maxLength} characters.`);
+  if (trimmed.length < prompt.minLength)
+    problems.push(
+      `Write at least ${prompt.minLength} characters (${trimmed.length} so far).`
+    );
+  if (trimmed.length > prompt.maxLength)
+    problems.push(`Keep it under ${prompt.maxLength} characters.`);
   let matched: string[] = [];
   if (prompt.vocabulary.mode !== 'off') {
-    const pool = prompt.vocabulary.mode === 'custom' ? prompt.vocabulary.words : ctx.identityVocabulary;
+    const pool =
+      prompt.vocabulary.mode === 'custom'
+        ? prompt.vocabulary.words
+        : ctx.identityVocabulary;
     matched = vocabularyMatches(trimmed, pool);
     if (matched.length < prompt.vocabulary.minMatches)
       problems.push(
@@ -196,7 +241,12 @@ export function promptsForTrigger(
       p.triggers.some(t => {
         if (t.on !== trigger.on) return false;
         if (t.on === 'intensity_threshold')
-          return typeof t.value === 'number' && typeof trigger.value === 'number' && (trigger.previous ?? -Infinity) < t.value && trigger.value >= t.value;
+          return (
+            typeof t.value === 'number' &&
+            typeof trigger.value === 'number' &&
+            (trigger.previous ?? -Infinity) < t.value &&
+            trigger.value >= t.value
+          );
         if (t.value === undefined) return true;
         return String(t.value) === String(trigger.value);
       })

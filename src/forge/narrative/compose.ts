@@ -1,25 +1,45 @@
 import { ConditionScope, evaluate } from '../events/conditions';
 import { narrate, NarrationContext } from '../identity/render';
 import { DEFAULT_HYPNO_LINES } from './builtins';
-import { HypnoConfig, HypnoPatternConfig, NarrativeStyle, StyleMixEntry } from './types';
+import {
+  HypnoConfig,
+  HypnoPatternConfig,
+  NarrativeStyle,
+  StyleMixEntry,
+} from './types';
 
 export type StyleIndex = Record<string, NarrativeStyle>;
 
 export type MixConflict = { a: string; b: string; message: string };
 
 /** Report incompatible pairs and unknown styles in a style mix. */
-export function checkStyleMix(mix: readonly StyleMixEntry[], styles: StyleIndex): MixConflict[] {
+export function checkStyleMix(
+  mix: readonly StyleMixEntry[],
+  styles: StyleIndex
+): MixConflict[] {
   const active = mix.filter(m => m.strength > 0 && styles[m.styleId]?.enabled);
   const conflicts: MixConflict[] = [];
   for (const m of mix) {
-    if (!styles[m.styleId]) conflicts.push({ a: m.styleId, b: m.styleId, message: `unknown style "${m.styleId}"` });
+    if (!styles[m.styleId])
+      conflicts.push({
+        a: m.styleId,
+        b: m.styleId,
+        message: `unknown style "${m.styleId}"`,
+      });
   }
   for (let i = 0; i < active.length; i++) {
     for (let j = i + 1; j < active.length; j++) {
       const a = styles[active[i].styleId];
       const b = styles[active[j].styleId];
-      if (a.incompatibleWith.includes(b.id) || b.incompatibleWith.includes(a.id))
-        conflicts.push({ a: a.id, b: b.id, message: `"${a.name}" and "${b.name}" are marked incompatible; the weaker one is suppressed` });
+      if (
+        a.incompatibleWith.includes(b.id) ||
+        b.incompatibleWith.includes(a.id)
+      )
+        conflicts.push({
+          a: a.id,
+          b: b.id,
+          message: `"${a.name}" and "${b.name}" are marked incompatible; the weaker one is suppressed`,
+        });
     }
   }
   return conflicts;
@@ -45,17 +65,24 @@ export type ComposedLine = {
   rejected: { phraseId: string; reason: string }[];
 };
 
-export function eligibleStyles(input: ComposeInput): { style: NarrativeStyle; weight: number }[] {
+export function eligibleStyles(
+  input: ComposeInput
+): { style: NarrativeStyle; weight: number }[] {
   const { styles, mix, narration, scope } = input;
   const intensity = narration.intensity ?? 0;
   const identityStyles = narration.identity.styles;
   const candidates = mix
-    .map(m => ({ style: styles[m.styleId], weight: (styles[m.styleId]?.weight ?? 0) * m.strength }))
+    .map(m => ({
+      style: styles[m.styleId],
+      weight: (styles[m.styleId]?.weight ?? 0) * m.strength,
+    }))
     .filter(({ style, weight }) => {
       if (!style || !style.enabled || weight <= 0) return false;
       if (input.only?.length && !input.only.includes(style.id)) return false;
-      if (identityStyles.length && !identityStyles.includes(style.id)) return false;
-      if (intensity < style.intensity.min || intensity > style.intensity.max) return false;
+      if (identityStyles.length && !identityStyles.includes(style.id))
+        return false;
+      if (intensity < style.intensity.min || intensity > style.intensity.max)
+        return false;
       if (style.activation && !evaluate(style.activation, scope)) return false;
       return true;
     });
@@ -63,7 +90,11 @@ export function eligibleStyles(input: ComposeInput): { style: NarrativeStyle; we
   const sorted = [...candidates].sort((a, b) => b.weight - a.weight);
   const kept: typeof candidates = [];
   for (const c of sorted) {
-    const clash = kept.some(k => k.style.incompatibleWith.includes(c.style.id) || c.style.incompatibleWith.includes(k.style.id));
+    const clash = kept.some(
+      k =>
+        k.style.incompatibleWith.includes(c.style.id) ||
+        c.style.incompatibleWith.includes(k.style.id)
+    );
     if (!clash) kept.push(c);
   }
   return candidates.filter(c => kept.includes(c));
@@ -93,18 +124,26 @@ export function composeLine(input: ComposeInput): ComposedLine | null {
     let phrases = style.phrases.filter(
       p =>
         p.enabled &&
-        (!p.intensity || (intensity >= p.intensity.min && intensity <= p.intensity.max)) &&
+        (!p.intensity ||
+          (intensity >= p.intensity.min && intensity <= p.intensity.max)) &&
         (!p.identities.length || p.identities.includes(identityCategory))
     );
     const excluded = [...style.excluded, ...(input.excluded ?? [])];
-    for (let attempt = 0; attempt < MAX_PHRASE_ATTEMPTS && phrases.length; attempt++) {
+    for (
+      let attempt = 0;
+      attempt < MAX_PHRASE_ATTEMPTS && phrases.length;
+      attempt++
+    ) {
       const phrase = rng.weighted(phrases, p => p.weight);
       if (!phrase) break;
       phrases = phrases.filter(p => p !== phrase);
       const ctx: NarrationContext = {
         ...input.narration,
         style: style.id,
-        vars: { ...input.narration.vars, vocab: rng.pick(style.vocabulary) ?? '' },
+        vars: {
+          ...input.narration.vars,
+          vocab: rng.pick(style.vocabulary) ?? '',
+        },
       };
       const out = narrate(phrase.text, ctx);
       const bad = out.blocked.length
@@ -124,10 +163,17 @@ export function composeLine(input: ComposeInput): ComposedLine | null {
         const t = prev?.transitions.find(tr => tr.to === style.id);
         if (t) {
           const rendered = narrate(t.template, ctx);
-          if (!rendered.blocked.length && !rendered.missing.length) transition = rendered.text;
+          if (!rendered.blocked.length && !rendered.missing.length)
+            transition = rendered.text;
         }
       }
-      return { text: out.text, styleId: style.id, phraseId: phrase.id, transition, rejected };
+      return {
+        text: out.text,
+        styleId: style.id,
+        phraseId: phrase.id,
+        transition,
+        rejected,
+      };
     }
   }
   return null;
@@ -141,7 +187,10 @@ export type HypnoLine = { patternId: string; lines: string[] };
 
 export function hypnoInterval(config: HypnoConfig, intensity: number): number {
   const t = Math.min(1, Math.max(0, intensity / 10));
-  return (config.intervalAtMin + (config.intervalAtMax - config.intervalAtMin) * t) * 1000;
+  return (
+    (config.intervalAtMin + (config.intervalAtMax - config.intervalAtMin) * t) *
+    1000
+  );
 }
 
 export function hypnoLine(
@@ -153,15 +202,26 @@ export function hypnoLine(
   const rng = narration.rng;
   const intensity = narration.intensity ?? 0;
   const usable = config.patterns.filter(
-    p => p.enabled && p.weight > 0 && intensity >= p.intensity.min && intensity <= p.intensity.max
+    p =>
+      p.enabled &&
+      p.weight > 0 &&
+      intensity >= p.intensity.min &&
+      intensity <= p.intensity.max
   );
   const transitionPattern = usable.find(p => p.id === 'phase_transition');
   const pattern: HypnoPatternConfig | undefined =
-    opts.transition && transitionPattern ? transitionPattern : rng.weighted(usable, p => p.weight);
+    opts.transition && transitionPattern
+      ? transitionPattern
+      : rng.weighted(usable, p => p.weight);
   if (!pattern) return null;
-  const source = pattern.lines.length ? pattern.lines : DEFAULT_HYPNO_LINES[pattern.id];
+  const source = pattern.lines.length
+    ? pattern.lines
+    : DEFAULT_HYPNO_LINES[pattern.id];
   const render = (t: string, vars: Record<string, string | number> = {}) => {
-    const r = narrate(t, { ...narration, vars: { ...narration.vars, ...vars } });
+    const r = narrate(t, {
+      ...narration,
+      vars: { ...narration.vars, ...vars },
+    });
     return r.blocked.length || r.missing.length ? null : r.text;
   };
   const lines: string[] = [];
@@ -183,7 +243,8 @@ export function hypnoLine(
     case 'rhythmic': {
       const base = rng.pick(source)!;
       for (let i = 0; i < n; i++) {
-        const t = i > 0 && rng.chance(pattern.variation) ? rng.pick(source)! : base;
+        const t =
+          i > 0 && rng.chance(pattern.variation) ? rng.pick(source)! : base;
         const line = render(t);
         if (line) lines.push(line);
       }
@@ -196,6 +257,8 @@ export function hypnoLine(
   }
   // Enforce the configured maximum length.
   let total = 0;
-  const capped = lines.filter(l => (total += l.length + 1) <= pattern.maxLength);
+  const capped = lines.filter(
+    l => (total += l.length + 1) <= pattern.maxLength
+  );
   return capped.length ? { patternId: pattern.id, lines: capped } : null;
 }

@@ -1,3 +1,9 @@
+> **This is JOI Forge, a fork of [clynamic/joi.how](https://github.com/clynamic/joi.how) (GPL-3.0).**
+> It keeps the original app (classic mode at `/`) and adds a configurable session studio at `/forge`:
+> identity profiles and dictionaries, composable narrative styles, a programmable event engine, prompts,
+> compliance checks, transparent accounting, and local session logs with replay.
+> See [docs/forge/README.md](docs/forge/README.md). Petplay content is excluded from this fork.
+
 ## JOI<sup>.how</sup>
 
 <a href="https://joi.how" title="joi.how">

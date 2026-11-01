@@ -160,7 +160,9 @@ export const identityProfileV = v.object({
   perspective: v.object({
     /** Who narrates: "the curator", "the researcher", ... Used by {narrator}. */
     narrator: v.string({ max: 60 }).default('the narrator'),
-    voice: v.enum(['direct', 'observational', 'ceremonial', 'mechanical'] as const).default('direct'),
+    voice: v
+      .enum(['direct', 'observational', 'ceremonial', 'mechanical'] as const)
+      .default('direct'),
   }),
   /** Narrative style ids applicable to this identity. Empty = all. */
   styles: v.array(v.string()).default([]),

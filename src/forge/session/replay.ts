@@ -53,17 +53,46 @@ export class ReplayCursor {
       index = i;
       activeMs = e.activeMs;
       switch (e.type) {
-        case 'phase_changed': phase = String(e.data.value); break;
-        case 'pause': paused = true; break;
-        case 'resume': paused = false; break;
-        case 'grip_changed': grip = String(e.data.value); break;
-        case 'narration_shown': lastNarration = String(e.data.text ?? ''); break;
-        case 'message_shown': lastMessage = String(e.data.title ?? ''); break;
-        case 'media_shown': media = { id: e.data.mediaId ? String(e.data.mediaId) : undefined, tags: Array.isArray(e.data.tags) ? e.data.tags.map(String) : [] }; break;
+        case 'phase_changed':
+          phase = String(e.data.value);
+          break;
+        case 'pause':
+          paused = true;
+          break;
+        case 'resume':
+          paused = false;
+          break;
+        case 'grip_changed':
+          grip = String(e.data.value);
+          break;
+        case 'narration_shown':
+          lastNarration = String(e.data.text ?? '');
+          break;
+        case 'message_shown':
+          lastMessage = String(e.data.title ?? '');
+          break;
+        case 'media_shown':
+          media = {
+            id: e.data.mediaId ? String(e.data.mediaId) : undefined,
+            tags: Array.isArray(e.data.tags) ? e.data.tags.map(String) : [],
+          };
+          break;
       }
     }
     if (index >= 0 && !paused) activeMs += t - this.events[index].t;
-    return { t, activeMs, intensity: valueAt(this.intensity, t), pace: valueAt(this.pace, t), phase, paused, grip, lastNarration, lastMessage, media, index };
+    return {
+      t,
+      activeMs,
+      intensity: valueAt(this.intensity, t),
+      pace: valueAt(this.pace, t),
+      phase,
+      paused,
+      grip,
+      lastNarration,
+      lastMessage,
+      media,
+      index,
+    };
   }
 
   next(index: number): SessionEvent | undefined {
@@ -93,15 +122,36 @@ export type GhostFrame = {
  * returns what the recording looked like at that point. Read-only: the
  * ghost never feeds back into the live session.
  */
-export function ghostAt(record: SessionRecord, currentActiveMs: number, windowMs = 10000): GhostFrame {
+export function ghostAt(
+  record: SessionRecord,
+  currentActiveMs: number,
+  windowMs = 10000
+): GhostFrame {
   const ev = record.events;
   const intensity = intensityCurve(ev, 'activeMs');
   const pace = paceCurve(ev, 'activeMs');
   const markers = ev
     .filter(e => Math.abs(e.activeMs - currentActiveMs) <= windowMs)
-    .filter(e => ['event_started', 'marker', 'pause', 'climax', 'check_shown', 'prompt_shown'].includes(e.type))
-    .map(e => ({ offsetMs: e.activeMs - currentActiveMs, type: e.type, label: e.eventId ?? String(e.data.label ?? e.type) }));
-  return { pace: valueAt(pace, currentActiveMs), intensity: valueAt(intensity, currentActiveMs), markers };
+    .filter(e =>
+      [
+        'event_started',
+        'marker',
+        'pause',
+        'climax',
+        'check_shown',
+        'prompt_shown',
+      ].includes(e.type)
+    )
+    .map(e => ({
+      offsetMs: e.activeMs - currentActiveMs,
+      type: e.type,
+      label: e.eventId ?? String(e.data.label ?? e.type),
+    }));
+  return {
+    pace: valueAt(pace, currentActiveMs),
+    intensity: valueAt(intensity, currentActiveMs),
+    markers,
+  };
 }
 
 export type Reproducibility = {
@@ -111,18 +161,35 @@ export type Reproducibility = {
 };
 
 /** Honest assessment of what can be reproduced from a record. */
-export function reproducibility(record: SessionRecord, current: { engineVersion: number; appVersion: string }): Reproducibility {
+export function reproducibility(
+  record: SessionRecord,
+  current: { engineVersion: number; appVersion: string }
+): Reproducibility {
   const limitations: string[] = [];
   if (!record.replay.seed) limitations.push('No random seed was recorded.');
   if (!record.replay.configEmbedded || record.config === undefined)
-    limitations.push('The configuration snapshot is not embedded (it may have been redacted on export).');
+    limitations.push(
+      'The configuration snapshot is not embedded (it may have been redacted on export).'
+    );
   if (record.replay.engineVersion !== current.engineVersion)
-    limitations.push(`Recorded with engine v${record.replay.engineVersion}; this app runs engine v${current.engineVersion}.`);
+    limitations.push(
+      `Recorded with engine v${record.replay.engineVersion}; this app runs engine v${current.engineVersion}.`
+    );
   if (record.replay.appVersion !== current.appVersion)
-    limitations.push(`Recorded with app ${record.replay.appVersion}; current app is ${current.appVersion}. Behaviour may differ.`);
-  limitations.push('Media files are never embedded; images/videos may no longer be available, and their timing is replayed from the log only.');
-  if (record.events.some(e => e.type === 'error')) limitations.push('The session logged engine errors; recovery paths may not reproduce exactly.');
-  if (!record.endedAt) limitations.push('The session was interrupted before it ended; the tail of the log may be incomplete.');
+    limitations.push(
+      `Recorded with app ${record.replay.appVersion}; current app is ${current.appVersion}. Behaviour may differ.`
+    );
+  limitations.push(
+    'Media files are never embedded; images/videos may no longer be available, and their timing is replayed from the log only.'
+  );
+  if (record.events.some(e => e.type === 'error'))
+    limitations.push(
+      'The session logged engine errors; recovery paths may not reproduce exactly.'
+    );
+  if (!record.endedAt)
+    limitations.push(
+      'The session was interrupted before it ended; the tail of the log may be incomplete.'
+    );
   const deterministic = limitations.length === 1; // only the media caveat
   return { logPlayback: true, deterministic, limitations };
 }

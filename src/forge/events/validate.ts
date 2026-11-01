@@ -49,7 +49,10 @@ export type Diagnostic = {
 
 export type CompiledStep = Step & { when?: never };
 
-export type CompiledEvent = Omit<EventDefinition, 'conditions' | 'terminateIf' | 'loop' | 'steps'> & {
+export type CompiledEvent = Omit<
+  EventDefinition,
+  'conditions' | 'terminateIf' | 'loop' | 'steps'
+> & {
   conditions?: Condition;
   terminateIf?: Condition;
   loop?: { times: number; until?: Condition };
@@ -58,7 +61,11 @@ export type CompiledEvent = Omit<EventDefinition, 'conditions' | 'terminateIf' |
 
 export type CompiledBranchAware =
   | Exclude<Step, { do: 'branch' }>
-  | { do: 'branch'; mode: 'first' | 'weighted'; branches: { when?: Condition; weight: number; goto: string }[] };
+  | {
+      do: 'branch';
+      mode: 'first' | 'weighted';
+      branches: { when?: Condition; weight: number; goto: string }[];
+    };
 
 export type CompiledPack = {
   id: string;
@@ -89,20 +96,34 @@ function eventIdAt(raw: unknown, path: string): string | undefined {
   const m = /^events\[(\d+)\]/.exec(path);
   if (!m || !raw || typeof raw !== 'object') return undefined;
   const ev = (raw as { events?: unknown[] }).events?.[Number(m[1])];
-  return ev && typeof ev === 'object' ? String((ev as { id?: unknown }).id ?? '') || undefined : undefined;
+  return ev && typeof ev === 'object'
+    ? String((ev as { id?: unknown }).id ?? '') || undefined
+    : undefined;
 }
 
-export function compilePack(raw: unknown, options: CompileOptions = {}): CompileResult {
+export function compilePack(
+  raw: unknown,
+  options: CompileOptions = {}
+): CompileResult {
   const errors: Diagnostic[] = [];
   const warnings: Diagnostic[] = [];
 
   const supported = options.supportedSchemaVersion ?? 1;
-  if (raw && typeof raw === 'object' && typeof (raw as { schemaVersion?: unknown }).schemaVersion === 'number') {
+  if (
+    raw &&
+    typeof raw === 'object' &&
+    typeof (raw as { schemaVersion?: unknown }).schemaVersion === 'number'
+  ) {
     const ver = (raw as { schemaVersion: number }).schemaVersion;
     if (ver > supported)
       return {
         ok: false,
-        errors: [{ code: 'version', message: `pack schemaVersion ${ver} is newer than supported (${supported}); update the app` }],
+        errors: [
+          {
+            code: 'version',
+            message: `pack schemaVersion ${ver} is newer than supported (${supported}); update the app`,
+          },
+        ],
         warnings,
       };
   }
@@ -110,53 +131,102 @@ export function compilePack(raw: unknown, options: CompileOptions = {}): Compile
   const schema = validate(eventPackV, raw);
   if (!schema.ok) {
     for (const issue of schema.issues)
-      errors.push({ code: 'schema', message: issue.message, path: issue.path, eventId: eventIdAt(raw, issue.path) });
+      errors.push({
+        code: 'schema',
+        message: issue.message,
+        path: issue.path,
+        eventId: eventIdAt(raw, issue.path),
+      });
     return { ok: false, errors, warnings };
   }
   const pack: EventPack = schema.value;
 
   for (const f of scanValue(pack, options.extraProhibited ?? []))
-    errors.push({ code: 'prohibited_term', message: `excluded term "${f.match}" (${f.category})`, path: f.path, eventId: eventIdAt(pack, f.path ?? '') });
+    errors.push({
+      code: 'prohibited_term',
+      message: `excluded term "${f.match}" (${f.category})`,
+      path: f.path,
+      eventId: eventIdAt(pack, f.path ?? ''),
+    });
 
   // Unique ids across events, groups and sequences (they share the goto namespace).
   const seen = new Map<string, string>();
   const claim = (kind: string, ident: string) => {
     const prev = seen.get(ident);
-    if (prev) errors.push({ code: 'duplicate_id', message: `id "${ident}" used by both ${prev} and ${kind}`, eventId: ident });
+    if (prev)
+      errors.push({
+        code: 'duplicate_id',
+        message: `id "${ident}" used by both ${prev} and ${kind}`,
+        eventId: ident,
+      });
     else seen.set(ident, kind);
   };
   pack.events.forEach(e => claim('event', e.id));
   pack.groups.forEach(g => claim('group', g.id));
   pack.sequences.forEach(s => claim('sequence', s.id));
 
-  const compileCond = (input: ConditionInput | undefined, eventId: string, path: string): Condition | undefined => {
+  const compileCond = (
+    input: ConditionInput | undefined,
+    eventId: string,
+    path: string
+  ): Condition | undefined => {
     if (input === undefined) return undefined;
     let cond: Condition;
     if (typeof input === 'string') {
       try {
         cond = parseCondition(input);
       } catch (e) {
-        errors.push({ code: 'dsl', message: e instanceof DslError ? e.message : String(e), eventId, path });
+        errors.push({
+          code: 'dsl',
+          message: e instanceof DslError ? e.message : String(e),
+          eventId,
+          path,
+        });
         return undefined;
       }
     } else cond = input;
     if (countNodes(cond) > MAX_CONDITION_NODES)
-      errors.push({ code: 'too_complex', message: `condition has more than ${MAX_CONDITION_NODES} nodes`, eventId, path });
-    for (const c of findContradictions(cond, path)) warnings.push({ code: 'contradiction', message: c.message, eventId, path: c.path });
+      errors.push({
+        code: 'too_complex',
+        message: `condition has more than ${MAX_CONDITION_NODES} nodes`,
+        eventId,
+        path,
+      });
+    for (const c of findContradictions(cond, path))
+      warnings.push({
+        code: 'contradiction',
+        message: c.message,
+        eventId,
+        path: c.path,
+      });
     for (const field of conditionFields(cond)) {
       const root = field.split('.')[0];
       if (!(FIELD_ROOTS as readonly string[]).includes(root))
-        warnings.push({ code: 'unknown_field', message: `unknown field "${field}" (evaluates as missing)`, eventId, path });
+        warnings.push({
+          code: 'unknown_field',
+          message: `unknown field "${field}" (evaluates as missing)`,
+          eventId,
+          path,
+        });
     }
     return cond;
   };
 
-  const targets = new Set([...pack.events.map(e => e.id), ...pack.groups.map(g => g.id), ...pack.sequences.map(s => s.id)]);
+  const targets = new Set([
+    ...pack.events.map(e => e.id),
+    ...pack.groups.map(g => g.id),
+    ...pack.sequences.map(s => s.id),
+  ]);
   const edges = new Map<string, Set<string>>();
   const referenced = new Set<string>();
   const addEdge = (from: string, to: string, eventId: string, path: string) => {
     if (!targets.has(to)) {
-      errors.push({ code: 'invalid_reference', message: `reference to unknown event/group/sequence "${to}"`, eventId, path });
+      errors.push({
+        code: 'invalid_reference',
+        message: `reference to unknown event/group/sequence "${to}"`,
+        eventId,
+        path,
+      });
       return;
     }
     referenced.add(to);
@@ -168,9 +238,19 @@ export function compilePack(raw: unknown, options: CompileOptions = {}): Compile
   pack.events.forEach((ev, i) => {
     const base = `events[${i}]`;
     if (ev.intensity.min > ev.intensity.max)
-      errors.push({ code: 'schema', message: 'intensity.min exceeds intensity.max', eventId: ev.id, path: `${base}.intensity` });
+      errors.push({
+        code: 'schema',
+        message: 'intensity.min exceeds intensity.max',
+        eventId: ev.id,
+        path: `${base}.intensity`,
+      });
     if (!ev.steps.length && !ev.next)
-      warnings.push({ code: 'empty_event', message: 'event has no steps and no next event', eventId: ev.id, path: base });
+      warnings.push({
+        code: 'empty_event',
+        message: 'event has no steps and no next event',
+        eventId: ev.id,
+        path: base,
+      });
     const steps: CompiledBranchAware[] = ev.steps.map((step, si) => {
       const sp = `${base}.steps[${si}]`;
       switch (step.do) {
@@ -183,22 +263,41 @@ export function compilePack(raw: unknown, options: CompileOptions = {}): Compile
             mode: step.mode,
             branches: step.branches.map((b, bi) => {
               addEdge(ev.id, b.goto, ev.id, `${sp}.branches[${bi}].goto`);
-              return { goto: b.goto, weight: b.weight, when: compileCond(b.when, ev.id, `${sp}.branches[${bi}].when`) };
+              return {
+                goto: b.goto,
+                weight: b.weight,
+                when: compileCond(b.when, ev.id, `${sp}.branches[${bi}].when`),
+              };
             }),
           };
         case 'prompt':
           if (options.promptIds && !options.promptIds.includes(step.promptId))
-            errors.push({ code: 'invalid_reference', message: `unknown prompt "${step.promptId}"`, eventId: ev.id, path: `${sp}.promptId` });
+            errors.push({
+              code: 'invalid_reference',
+              message: `unknown prompt "${step.promptId}"`,
+              eventId: ev.id,
+              path: `${sp}.promptId`,
+            });
           return step;
         case 'check':
           if (options.checkIds && !options.checkIds.includes(step.checkId))
-            errors.push({ code: 'invalid_reference', message: `unknown check "${step.checkId}"`, eventId: ev.id, path: `${sp}.checkId` });
+            errors.push({
+              code: 'invalid_reference',
+              message: `unknown check "${step.checkId}"`,
+              eventId: ev.id,
+              path: `${sp}.checkId`,
+            });
           return step;
         case 'narrate':
           if (options.styleIds)
             for (const s of step.styles)
               if (!options.styleIds.includes(s))
-                warnings.push({ code: 'invalid_reference', message: `unknown narrative style "${s}"`, eventId: ev.id, path: `${sp}.styles` });
+                warnings.push({
+                  code: 'invalid_reference',
+                  message: `unknown narrative style "${s}"`,
+                  eventId: ev.id,
+                  path: `${sp}.styles`,
+                });
           return step;
         default:
           return step;
@@ -209,18 +308,30 @@ export function compilePack(raw: unknown, options: CompileOptions = {}): Compile
       ...ev,
       conditions: compileCond(ev.conditions, ev.id, `${base}.conditions`),
       terminateIf: compileCond(ev.terminateIf, ev.id, `${base}.terminateIf`),
-      loop: ev.loop ? { times: ev.loop.times, until: compileCond(ev.loop.until, ev.id, `${base}.loop.until`) } : undefined,
+      loop: ev.loop
+        ? {
+            times: ev.loop.times,
+            until: compileCond(ev.loop.until, ev.id, `${base}.loop.until`),
+          }
+        : undefined,
       steps,
     };
   });
 
   pack.groups.forEach((g, i) =>
-    g.members.forEach((m, mi) => addEdge(g.id, m.event, g.id, `groups[${i}].members[${mi}].event`))
+    g.members.forEach((m, mi) =>
+      addEdge(g.id, m.event, g.id, `groups[${i}].members[${mi}].event`)
+    )
   );
   pack.sequences.forEach((s, i) =>
     s.events.forEach((e, ei) => {
       if (!pack.events.some(x => x.id === e))
-        errors.push({ code: 'invalid_reference', message: `sequence step "${e}" is not an event`, eventId: s.id, path: `sequences[${i}].events[${ei}]` });
+        errors.push({
+          code: 'invalid_reference',
+          message: `sequence step "${e}" is not an event`,
+          eventId: s.id,
+          path: `sequences[${i}].events[${ei}]`,
+        });
       else referenced.add(e);
     })
   );
@@ -229,13 +340,27 @@ export function compilePack(raw: unknown, options: CompileOptions = {}): Compile
   for (const ev of pack.events) {
     const poolable = ev.enabled && ev.selectable && ev.weight > 0;
     if (!poolable && !referenced.has(ev.id))
-      warnings.push({ code: 'unreachable', message: 'event can never run: not selectable and not referenced by any goto/next/branch/group/sequence', eventId: ev.id });
+      warnings.push({
+        code: 'unreachable',
+        message:
+          'event can never run: not selectable and not referenced by any goto/next/branch/group/sequence',
+        eventId: ev.id,
+      });
     if (referenced.has(ev.id) && !ev.enabled)
-      warnings.push({ code: 'unreachable', message: 'event is referenced but disabled; references to it are skipped', eventId: ev.id });
+      warnings.push({
+        code: 'unreachable',
+        message:
+          'event is referenced but disabled; references to it are skipped',
+        eventId: ev.id,
+      });
   }
   for (const g of pack.groups)
     if (!referenced.has(g.id))
-      warnings.push({ code: 'unreachable', message: `group "${g.id}" is never referenced`, eventId: g.id });
+      warnings.push({
+        code: 'unreachable',
+        message: `group "${g.id}" is never referenced`,
+        eventId: g.id,
+      });
 
   // Unbounded loops: every cycle in the goto/next/branch graph must contain
   // an event with maxRepeats > 0 or a terminateIf condition.
@@ -276,7 +401,10 @@ export function findCycles(edges: Map<string, Set<string>>): string[][] {
   const idx = new Map<string, number>();
   const low = new Map<string, number>();
   const out: string[][] = [];
-  const nodes = new Set<string>([...edges.keys(), ...[...edges.values()].flatMap(s => [...s])]);
+  const nodes = new Set<string>([
+    ...edges.keys(),
+    ...[...edges.values()].flatMap(s => [...s]),
+  ]);
 
   const strong = (v: string) => {
     idx.set(v, index);

@@ -6,13 +6,25 @@ import { DEFAULT_EVENT_PACK } from '../events/builtins';
 import { EventPack } from '../events/types';
 import { CompiledPack, compilePack, Diagnostic } from '../events/validate';
 import { BUILTIN_PRONOUNS } from '../identity/grammar';
-import { BUILTIN_ANATOMY, BUILTIN_DICTIONARIES, BUILTIN_IDENTITIES } from '../identity/builtins';
-import { AnatomyProfile, Dictionary, IdentityProfile, PronounSet } from '../identity/types';
+import {
+  BUILTIN_ANATOMY,
+  BUILTIN_DICTIONARIES,
+  BUILTIN_IDENTITIES,
+} from '../identity/builtins';
+import {
+  AnatomyProfile,
+  Dictionary,
+  IdentityProfile,
+  PronounSet,
+} from '../identity/types';
 import { BUILTIN_STYLES } from '../narrative/builtins';
 import { NarrativeStyle } from '../narrative/types';
 import { ForgeConfig } from './schema';
 
-const index = <T extends { id: string }>(builtins: readonly T[], user: readonly T[]): Record<string, T> => {
+const index = <T extends { id: string }>(
+  builtins: readonly T[],
+  user: readonly T[]
+): Record<string, T> => {
   const out: Record<string, T> = {};
   for (const b of builtins) out[b.id] = b;
   for (const u of user) out[u.id] = u;
@@ -38,7 +50,11 @@ export function resolveLibrary(config: ForgeConfig): Library {
 }
 
 /** Whether an item is a built-in, a user override of a built-in, or user-defined. */
-export function originOf(kind: keyof Library, id: string, config: ForgeConfig): 'builtin' | 'override' | 'custom' {
+export function originOf(
+  kind: keyof Library,
+  id: string,
+  config: ForgeConfig
+): 'builtin' | 'override' | 'custom' {
   const builtinIds: Record<keyof Library, readonly { id: string }[]> = {
     identities: BUILTIN_IDENTITIES,
     anatomy: BUILTIN_ANATOMY,
@@ -53,7 +69,10 @@ export function originOf(kind: keyof Library, id: string, config: ForgeConfig): 
 
 /** Merge enabled packs into one, applying disable/weight overrides. */
 export function mergedPack(config: ForgeConfig): EventPack {
-  const packs = [...(config.events.builtinEnabled ? [DEFAULT_EVENT_PACK] : []), ...config.events.packs];
+  const packs = [
+    ...(config.events.builtinEnabled ? [DEFAULT_EVENT_PACK] : []),
+    ...config.events.packs,
+  ];
   const events = new Map<string, EventPack['events'][number]>();
   const groups = new Map<string, EventPack['groups'][number]>();
   const sequences = new Map<string, EventPack['sequences'][number]>();
@@ -95,5 +114,11 @@ export function compileConfig(config: ForgeConfig): CompiledConfig {
     styleIds: Object.keys(library.styles),
     extraProhibited: config.safety.extraProhibitedWords,
   });
-  return { config, library, pack: result.pack ?? null, errors: result.errors, warnings: result.warnings };
+  return {
+    config,
+    library,
+    pack: result.pack ?? null,
+    errors: result.errors,
+    warnings: result.warnings,
+  };
 }

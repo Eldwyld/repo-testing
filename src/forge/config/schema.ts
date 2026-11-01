@@ -7,12 +7,25 @@
  * override and "reset" simply deletes the override.
  */
 import { Infer, v } from '../core/validate';
-import { accountingConfigV, DEFAULT_ACCOUNTING } from '../accounting/accounting';
+import {
+  accountingConfigV,
+  DEFAULT_ACCOUNTING,
+} from '../accounting/accounting';
 import { complianceCheckV, DEFAULT_CHECKS } from '../checks/checks';
 import { eventPackV, selectionConfigV } from '../events/types';
-import { anatomyProfileV, dictionaryV, GRAMMATICAL_PERSONS, identityProfileV, pronounSetV } from '../identity/types';
+import {
+  anatomyProfileV,
+  dictionaryV,
+  GRAMMATICAL_PERSONS,
+  identityProfileV,
+  pronounSetV,
+} from '../identity/types';
 import { DEFAULT_HYPNO } from '../narrative/builtins';
-import { hypnoConfigV, narrativeStyleV, styleMixEntryV } from '../narrative/types';
+import {
+  hypnoConfigV,
+  narrativeStyleV,
+  styleMixEntryV,
+} from '../narrative/types';
 import { DEFAULT_PROMPTS, promptTemplateV } from '../prompts/prompts';
 
 export const CONFIG_SCHEMA_VERSION = 2;
@@ -22,7 +35,9 @@ export const sessionSettingsV = v.object({
   anatomyId: v.string().default('anatomy.penis'),
   /** Pronoun set id overriding the identity's pronouns (null = identity default). */
   pronounsOverride: v.union(v.string(), v.literal(null)).default(null),
-  personOverride: v.union(v.enum(GRAMMATICAL_PERSONS), v.literal(null)).default(null),
+  personOverride: v
+    .union(v.enum(GRAMMATICAL_PERSONS), v.literal(null))
+    .default(null),
   styleMix: v.array(styleMixEntryV, { max: 50 }).default([
     { styleId: 'encouragement', strength: 0.6 },
     { styleId: 'praise', strength: 0.6 },
@@ -74,7 +89,9 @@ export const safetyConfigV = v.object({
   }),
   confirmBeforeStart: v.boolean().default(true),
   /** Additional words prohibited everywhere (added to the built-in exclusions). */
-  extraProhibitedWords: v.array(v.string({ max: 80 }), { max: 500 }).default([]),
+  extraProhibitedWords: v
+    .array(v.string({ max: 80 }), { max: 500 })
+    .default([]),
   /** Phrases never shown in any narration. */
   excludedPhrases: v.array(v.string({ max: 200 }), { max: 500 }).default([]),
   /** Keep the "recording" indicator visible during sessions. */
@@ -97,7 +114,14 @@ export const forgeConfigV = v.object({
     packs: v.array(eventPackV, { max: 50 }).default([]),
     disabledEventIds: v.array(v.string()).default([]),
     weightOverrides: v.record(v.number({ min: 0, max: 1000 })).default({}),
-    selection: selectionConfigV.default({ strategy: 'weighted', rollIntervalSeconds: 1, triggerProbability: 0.15, minGapSeconds: 3, maxChainDepth: 16, maxStepsPerTick: 100 }),
+    selection: selectionConfigV.default({
+      strategy: 'weighted',
+      rollIntervalSeconds: 1,
+      triggerProbability: 0.15,
+      minGapSeconds: 3,
+      maxChainDepth: 16,
+      maxStepsPerTick: 100,
+    }),
   }),
   prompts: v.object({
     enabled: v.boolean().default(true),
@@ -152,6 +176,7 @@ export function defaultConfig(): ForgeConfig {
     '',
     issues
   );
-  if (issues.length) throw new Error(`default config invalid: ${JSON.stringify(issues)}`);
+  if (issues.length)
+    throw new Error(`default config invalid: ${JSON.stringify(issues)}`);
   return structuredClone(value);
 }

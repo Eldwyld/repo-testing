@@ -25,7 +25,10 @@
 import { Condition, Operator, Scalar } from './conditions';
 
 export class DslError extends Error {
-  constructor(message: string, public readonly position: number) {
+  constructor(
+    message: string,
+    public readonly position: number
+  ) {
     super(`${message} (at character ${position + 1})`);
   }
 }
@@ -38,15 +41,33 @@ type Tok =
   | { kind: 'eof'; pos: number };
 
 const MAX_INPUT = 2000;
-const SYMBOLS = ['>=', '<=', '==', '!=', '..', '!contains', '(', ')', '[', ']', ',', '>', '<'];
+const SYMBOLS = [
+  '>=',
+  '<=',
+  '==',
+  '!=',
+  '..',
+  '!contains',
+  '(',
+  ')',
+  '[',
+  ']',
+  ',',
+  '>',
+  '<',
+];
 
 function tokenize(input: string): Tok[] {
-  if (input.length > MAX_INPUT) throw new DslError(`expression longer than ${MAX_INPUT} characters`, 0);
+  if (input.length > MAX_INPUT)
+    throw new DslError(`expression longer than ${MAX_INPUT} characters`, 0);
   const toks: Tok[] = [];
   let i = 0;
   while (i < input.length) {
     const c = input[i];
-    if (/\s/.test(c)) { i++; continue; }
+    if (/\s/.test(c)) {
+      i++;
+      continue;
+    }
     const sym = SYMBOLS.find(s => input.startsWith(s, i));
     if (sym) {
       toks.push({ kind: 'sym', value: sym, pos: i });
@@ -57,7 +78,11 @@ function tokenize(input: string): Tok[] {
       let j = i + 1;
       let out = '';
       while (j < input.length && input[j] !== c) {
-        if (input[j] === '\\' && j + 1 < input.length) { out += input[j + 1]; j += 2; continue; }
+        if (input[j] === '\\' && j + 1 < input.length) {
+          out += input[j + 1];
+          j += 2;
+          continue;
+        }
         out += input[j++];
       }
       if (j >= input.length) throw new DslError('unterminated string', i);
@@ -72,7 +97,9 @@ function tokenize(input: string): Tok[] {
       i += num[0].length;
       continue;
     }
-    const word = /^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z0-9_:-]+)*/.exec(input.slice(i));
+    const word = /^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z0-9_:-]+)*/.exec(
+      input.slice(i)
+    );
     if (word) {
       toks.push({ kind: 'word', value: word[0], pos: i });
       i += word[0].length;
@@ -101,8 +128,11 @@ export function parseCondition(input: string): Condition {
   const toks = tokenize(input);
   let p = 0;
   const peek = () => toks[p];
-  const isWord = (w: string) => peek().kind === 'word' && (peek() as { value: string }).value.toLowerCase() === w;
-  const isSym = (s: string) => peek().kind === 'sym' && (peek() as { value: string }).value === s;
+  const isWord = (w: string) =>
+    peek().kind === 'word' &&
+    (peek() as { value: string }).value.toLowerCase() === w;
+  const isSym = (s: string) =>
+    peek().kind === 'sym' && (peek() as { value: string }).value === s;
   const expectSym = (s: string) => {
     if (!isSym(s)) throw new DslError(`expected "${s}"`, peek().pos);
     p++;
@@ -110,12 +140,24 @@ export function parseCondition(input: string): Condition {
 
   const value = (): Scalar => {
     const t = peek();
-    if (t.kind === 'num' || t.kind === 'str') { p++; return t.value; }
+    if (t.kind === 'num' || t.kind === 'str') {
+      p++;
+      return t.value;
+    }
     if (t.kind === 'word') {
       const w = t.value.toLowerCase();
-      if (w === 'true' || w === 'false') { p++; return w === 'true'; }
-      if (w === 'null') { p++; return null; }
-      throw new DslError(`expected a value; strings must be quoted ("${t.value}")`, t.pos);
+      if (w === 'true' || w === 'false') {
+        p++;
+        return w === 'true';
+      }
+      if (w === 'null') {
+        p++;
+        return null;
+      }
+      throw new DslError(
+        `expected a value; strings must be quoted ("${t.value}")`,
+        t.pos
+      );
     }
     throw new DslError('expected a value', t.pos);
   };
@@ -125,7 +167,10 @@ export function parseCondition(input: string): Condition {
     const items: Scalar[] = [];
     if (!isSym(']')) {
       items.push(value());
-      while (isSym(',')) { p++; items.push(value()); }
+      while (isSym(',')) {
+        p++;
+        items.push(value());
+      }
     }
     expectSym(']');
     return items;
@@ -135,14 +180,25 @@ export function parseCondition(input: string): Condition {
     const t = peek();
     if (t.kind !== 'word') throw new DslError('expected a field name', t.pos);
     const field = t.value;
-    if (['and', 'or', 'not', 'in'].includes(field.toLowerCase())) throw new DslError(`unexpected keyword "${field}"`, t.pos);
+    if (['and', 'or', 'not', 'in'].includes(field.toLowerCase()))
+      throw new DslError(`unexpected keyword "${field}"`, t.pos);
     p++;
-    if (isWord('exists')) { p++; return { field, operator: 'exists' }; }
-    if (isWord('missing')) { p++; return { field, operator: 'notExists' }; }
-    if (isWord('in')) { p++; return { field, operator: 'in', value: list() }; }
+    if (isWord('exists')) {
+      p++;
+      return { field, operator: 'exists' };
+    }
+    if (isWord('missing')) {
+      p++;
+      return { field, operator: 'notExists' };
+    }
+    if (isWord('in')) {
+      p++;
+      return { field, operator: 'in', value: list() };
+    }
     if (isWord('not')) {
       p++;
-      if (!isWord('in')) throw new DslError('expected "in" after "not"', peek().pos);
+      if (!isWord('in'))
+        throw new DslError('expected "in" after "not"', peek().pos);
       p++;
       return { field, operator: 'notIn', value: list() };
     }
@@ -151,13 +207,18 @@ export function parseCondition(input: string): Condition {
       const lo = value();
       expectSym('..');
       const hi = value();
-      if (typeof lo !== 'number' || typeof hi !== 'number') throw new DslError('between requires numbers', t.pos);
+      if (typeof lo !== 'number' || typeof hi !== 'number')
+        throw new DslError('between requires numbers', t.pos);
       return { field, operator: 'between', value: [lo, hi] };
     }
     const opTok = peek();
-    const opKey = opTok.kind === 'sym' || opTok.kind === 'word' ? opTok.value.toLowerCase() : '';
+    const opKey =
+      opTok.kind === 'sym' || opTok.kind === 'word'
+        ? opTok.value.toLowerCase()
+        : '';
     const operator = OPS[opKey];
-    if (!operator) throw new DslError(`expected an operator after "${field}"`, opTok.pos);
+    if (!operator)
+      throw new DslError(`expected an operator after "${field}"`, opTok.pos);
     p++;
     const val = value();
     if (/^(greater|less)/.test(operator) && typeof val !== 'number')
@@ -175,18 +236,28 @@ export function parseCondition(input: string): Condition {
     return comparison();
   };
   const notExpr = (depth: number): Condition => {
-    if (depth > MAX_DEPTH) throw new DslError('expression nested too deeply', peek().pos);
-    if (isWord('not')) { p++; return { not: notExpr(depth + 1) }; }
+    if (depth > MAX_DEPTH)
+      throw new DslError('expression nested too deeply', peek().pos);
+    if (isWord('not')) {
+      p++;
+      return { not: notExpr(depth + 1) };
+    }
     return primary(depth);
   };
   const andExpr = (depth: number): Condition => {
     const items = [notExpr(depth)];
-    while (isWord('and')) { p++; items.push(notExpr(depth)); }
+    while (isWord('and')) {
+      p++;
+      items.push(notExpr(depth));
+    }
     return items.length === 1 ? items[0] : { all: items };
   };
   const orExpr = (depth: number): Condition => {
     const items = [andExpr(depth)];
-    while (isWord('or')) { p++; items.push(andExpr(depth)); }
+    while (isWord('or')) {
+      p++;
+      items.push(andExpr(depth));
+    }
     return items.length === 1 ? items[0] : { any: items };
   };
 
@@ -196,11 +267,18 @@ export function parseCondition(input: string): Condition {
 }
 
 const SYM_OF: Partial<Record<Operator, string>> = {
-  equals: '==', notEquals: '!=', greaterThan: '>', greaterThanOrEqual: '>=',
-  lessThan: '<', lessThanOrEqual: '<=', contains: 'contains', notContains: '!contains',
+  equals: '==',
+  notEquals: '!=',
+  greaterThan: '>',
+  greaterThanOrEqual: '>=',
+  lessThan: '<',
+  lessThanOrEqual: '<=',
+  contains: 'contains',
+  notContains: '!contains',
 };
 
-const lit = (x: Scalar) => (typeof x === 'string' ? JSON.stringify(x) : String(x));
+const lit = (x: Scalar) =>
+  typeof x === 'string' ? JSON.stringify(x) : String(x);
 
 /** Inverse of parseCondition, used to show JSON conditions in DSL form. */
 export function formatCondition(c: Condition, nested = false): string {
@@ -214,11 +292,17 @@ export function formatCondition(c: Condition, nested = false): string {
   }
   if ('not' in c) return `not ${formatCondition(c.not, true)}`;
   switch (c.operator) {
-    case 'exists': return `${c.field} exists`;
-    case 'notExists': return `${c.field} missing`;
-    case 'in': return `${c.field} in [${(c.value as Scalar[]).map(lit).join(', ')}]`;
-    case 'notIn': return `${c.field} not in [${(c.value as Scalar[]).map(lit).join(', ')}]`;
-    case 'between': return `${c.field} between ${(c.value as number[])[0]}..${(c.value as number[])[1]}`;
-    default: return `${c.field} ${SYM_OF[c.operator]} ${lit(c.value as Scalar)}`;
+    case 'exists':
+      return `${c.field} exists`;
+    case 'notExists':
+      return `${c.field} missing`;
+    case 'in':
+      return `${c.field} in [${(c.value as Scalar[]).map(lit).join(', ')}]`;
+    case 'notIn':
+      return `${c.field} not in [${(c.value as Scalar[]).map(lit).join(', ')}]`;
+    case 'between':
+      return `${c.field} between ${(c.value as number[])[0]}..${(c.value as number[])[1]}`;
+    default:
+      return `${c.field} ${SYM_OF[c.operator]} ${lit(c.value as Scalar)}`;
   }
 }

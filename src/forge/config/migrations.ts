@@ -5,21 +5,38 @@
  */
 import { CONFIG_SCHEMA_VERSION } from './schema';
 
-export type MigrationResult = { value: Record<string, unknown>; notes: string[]; from: number; to: number };
+export type MigrationResult = {
+  value: Record<string, unknown>;
+  notes: string[];
+  from: number;
+  to: number;
+};
 
-type Migration = { from: number; describe: string; run: (raw: Record<string, unknown>, notes: string[]) => Record<string, unknown> };
+type Migration = {
+  from: number;
+  describe: string;
+  run: (
+    raw: Record<string, unknown>,
+    notes: string[]
+  ) => Record<string, unknown>;
+};
 
 const MIGRATIONS: Migration[] = [
   {
     from: 1,
-    describe: 'v1 -> v2: session.styles (string[]) becomes session.styleMix; top-level checks array moves to checks.items',
+    describe:
+      'v1 -> v2: session.styles (string[]) becomes session.styleMix; top-level checks array moves to checks.items',
     run(raw, notes) {
       const out = structuredClone(raw);
       const session = (out.session ?? {}) as Record<string, unknown>;
       if (Array.isArray(session.styles)) {
-        session.styleMix = (session.styles as unknown[]).filter(s => typeof s === 'string').map(styleId => ({ styleId, strength: 1 }));
+        session.styleMix = (session.styles as unknown[])
+          .filter(s => typeof s === 'string')
+          .map(styleId => ({ styleId, strength: 1 }));
         delete session.styles;
-        notes.push('Converted session.styles to a style mix with full strength.');
+        notes.push(
+          'Converted session.styles to a style mix with full strength.'
+        );
       }
       out.session = session;
       if (Array.isArray(out.checks)) {
@@ -35,7 +52,10 @@ const MIGRATIONS: Migration[] = [
 export function migrateConfig(raw: Record<string, unknown>): MigrationResult {
   const notes: string[] = [];
   const from = typeof raw.schemaVersion === 'number' ? raw.schemaVersion : 1;
-  if (from > CONFIG_SCHEMA_VERSION) throw new Error(`Config schemaVersion ${from} is newer than this app supports (${CONFIG_SCHEMA_VERSION}).`);
+  if (from > CONFIG_SCHEMA_VERSION)
+    throw new Error(
+      `Config schemaVersion ${from} is newer than this app supports (${CONFIG_SCHEMA_VERSION}).`
+    );
   let value = raw;
   for (let v = from; v < CONFIG_SCHEMA_VERSION; v++) {
     const m = MIGRATIONS.find(x => x.from === v);
@@ -71,7 +91,13 @@ const DICE_TO_EVENT: Record<string, string> = {
 };
 
 export function looksLikeJoiSettings(raw: unknown): raw is JoiSettings {
-  return !!raw && typeof raw === 'object' && 'gameDuration' in raw && 'minPace' in raw && !('kind' in raw);
+  return (
+    !!raw &&
+    typeof raw === 'object' &&
+    'gameDuration' in raw &&
+    'minPace' in raw &&
+    !('kind' in raw)
+  );
 }
 
 /**
@@ -79,23 +105,44 @@ export function looksLikeJoiSettings(raw: unknown): raw is JoiSettings {
  * climax/ruin odds and which dice events were enabled. Pet-themed hypnosis
  * modes are not carried over (excluded content in this fork).
  */
-export function fromJoiSettings(s: JoiSettings): { patch: Record<string, unknown>; notes: string[] } {
+export function fromJoiSettings(s: JoiSettings): {
+  patch: Record<string, unknown>;
+  notes: string[];
+} {
   const notes: string[] = [];
   const session: Record<string, unknown> = {};
-  if (typeof s.gameDuration === 'number') session.durationSeconds = Math.max(60, s.gameDuration);
-  if (typeof s.warmupDuration === 'number') session.warmupSeconds = s.warmupDuration;
+  if (typeof s.gameDuration === 'number')
+    session.durationSeconds = Math.max(60, s.gameDuration);
+  if (typeof s.warmupDuration === 'number')
+    session.warmupSeconds = s.warmupDuration;
   if (typeof s.climaxChance === 'number') session.climaxChance = s.climaxChance;
   if (typeof s.ruinChance === 'number') session.ruinChance = s.ruinChance;
   if (typeof s.minPace === 'number') session.paceMin = s.minPace;
   if (typeof s.maxPace === 'number') session.paceMax = s.maxPace;
-  session.pronounsOverride = s.gender === 'male' ? 'he' : s.gender === 'female' ? 'she' : 'they';
-  session.anatomyId = s.body === 'vagina' ? 'anatomy.vulva' : s.body === 'neuter' ? 'anatomy.unspecified' : 'anatomy.penis';
-  const enabled = new Set((s.events ?? Object.keys(DICE_TO_EVENT)).map(e => DICE_TO_EVENT[e]).filter(Boolean));
-  const disabledEventIds = Object.values(DICE_TO_EVENT).filter(id => !enabled.has(id));
+  session.pronounsOverride =
+    s.gender === 'male' ? 'he' : s.gender === 'female' ? 'she' : 'they';
+  session.anatomyId =
+    s.body === 'vagina'
+      ? 'anatomy.vulva'
+      : s.body === 'neuter'
+        ? 'anatomy.unspecified'
+        : 'anatomy.penis';
+  const enabled = new Set(
+    (s.events ?? Object.keys(DICE_TO_EVENT))
+      .map(e => DICE_TO_EVENT[e])
+      .filter(Boolean)
+  );
+  const disabledEventIds = Object.values(DICE_TO_EVENT).filter(
+    id => !enabled.has(id)
+  );
   const hypnoEnabled = s.hypno !== undefined && s.hypno !== 'off';
   if (s.hypno === 'maledom' || s.hypno === 'femdom')
-    notes.push(`Original hypnosis mode "${s.hypno}" was pet-themed and is not available; generic hypnosis narration was enabled instead.`);
-  notes.push('Imported from joi.how settings: durations, pace limits, climax/ruin odds, enabled dice events, pronouns and anatomy.');
+    notes.push(
+      `Original hypnosis mode "${s.hypno}" was pet-themed and is not available; generic hypnosis narration was enabled instead.`
+    );
+  notes.push(
+    'Imported from joi.how settings: durations, pace limits, climax/ruin odds, enabled dice events, pronouns and anatomy.'
+  );
   return {
     patch: {
       session,

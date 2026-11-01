@@ -24,7 +24,10 @@ export type ResolvedDictionaries = {
  * Resolve the dictionaries attached to an identity, following only explicit
  * `extends` links. Duplicates are visited once; cycles are reported, not followed.
  */
-export function resolveDictionaries(ids: readonly string[], index: DictionaryIndex): ResolvedDictionaries {
+export function resolveDictionaries(
+  ids: readonly string[],
+  index: DictionaryIndex
+): ResolvedDictionaries {
   const chain: Dictionary[] = [];
   const missing: string[] = [];
   const cycles: string[] = [];
@@ -56,10 +59,17 @@ export type EntryFilter = {
   prohibitedWords?: readonly string[];
 };
 
-export type WeightedEntry = { entry: DictionaryEntry; weight: number; dictionary: string };
+export type WeightedEntry = {
+  entry: DictionaryEntry;
+  weight: number;
+  dictionary: string;
+};
 
 /** All usable entries for a semantic category, with effective weights. */
-export function collectEntries(chain: readonly Dictionary[], filter: EntryFilter): WeightedEntry[] {
+export function collectEntries(
+  chain: readonly Dictionary[],
+  filter: EntryFilter
+): WeightedEntry[] {
   const out: WeightedEntry[] = [];
   const seenText = new Set<string>();
   const preferred = (filter.preferredWords ?? []).map(w => w.toLowerCase());
@@ -68,15 +78,24 @@ export function collectEntries(chain: readonly Dictionary[], filter: EntryFilter
     for (const entry of d.entries) {
       if (!entry.enabled || entry.category !== filter.category) continue;
       if (override?.disable.includes(entry.id)) continue;
-      if (entry.styles.length && (!filter.style || !entry.styles.includes(filter.style))) continue;
+      if (
+        entry.styles.length &&
+        (!filter.style || !entry.styles.includes(filter.style))
+      )
+        continue;
       if (entry.intensity && filter.intensity !== undefined) {
-        if (filter.intensity < entry.intensity.min || filter.intensity > entry.intensity.max) continue;
+        if (
+          filter.intensity < entry.intensity.min ||
+          filter.intensity > entry.intensity.max
+        )
+          continue;
       }
       if (!isClean(entry.text, filter.prohibitedWords ?? [])) continue;
       const key = entry.text.toLowerCase();
       if (seenText.has(key)) continue; // child dictionaries shadow parents
       seenText.add(key);
-      let weight = entry.weight * (override?.categoryWeights[entry.category] ?? 1);
+      let weight =
+        entry.weight * (override?.categoryWeights[entry.category] ?? 1);
       if (preferred.some(p => key.includes(p))) weight *= 2;
       if (weight > 0) out.push({ entry, weight, dictionary: d.id });
     }
@@ -116,17 +135,30 @@ export function resolveBodyPart(
 export function pickTerm(
   part: BodyPartConfig,
   rng: Rng,
-  opts: { register?: TermRegister; style?: string; prohibitedWords?: readonly string[] } = {}
+  opts: {
+    register?: TermRegister;
+    style?: string;
+    prohibitedWords?: readonly string[];
+  } = {}
 ): TermForms | undefined {
   if (!part.enabled) return undefined;
   const register =
-    opts.register ?? (opts.style ? part.styleRegisters[opts.style] : undefined) ?? part.defaultRegister;
+    opts.register ??
+    (opts.style ? part.styleRegisters[opts.style] : undefined) ??
+    part.defaultRegister;
   const usable = part.terms.filter(
-    t => t.enabled && t.weight > 0 && isClean(t.forms.singular, opts.prohibitedWords ?? [])
+    t =>
+      t.enabled &&
+      t.weight > 0 &&
+      isClean(t.forms.singular, opts.prohibitedWords ?? [])
   );
   const byStyle = (list: TermEntry[]) => {
-    const styled = opts.style ? list.filter(t => t.styles.includes(opts.style!)) : [];
-    return styled.length ? styled : list.filter(t => t.styles.length === 0 || !opts.style);
+    const styled = opts.style
+      ? list.filter(t => t.styles.includes(opts.style!))
+      : [];
+    return styled.length
+      ? styled
+      : list.filter(t => t.styles.length === 0 || !opts.style);
   };
   const tiers = [
     byStyle(usable.filter(t => t.register === register)),

@@ -1,20 +1,78 @@
 import { GrammaticalPerson, PronounSet, TermForms } from './types';
 
 export const BUILTIN_PRONOUNS: PronounSet[] = [
-  { id: 'she', label: 'she/her', subject: 'she', object: 'her', possessiveDeterminer: 'her', possessivePronoun: 'hers', reflexive: 'herself', pluralVerbs: false },
-  { id: 'he', label: 'he/him', subject: 'he', object: 'him', possessiveDeterminer: 'his', possessivePronoun: 'his', reflexive: 'himself', pluralVerbs: false },
-  { id: 'they', label: 'they/them', subject: 'they', object: 'them', possessiveDeterminer: 'their', possessivePronoun: 'theirs', reflexive: 'themself', pluralVerbs: true },
-  { id: 'it', label: 'it/its', subject: 'it', object: 'it', possessiveDeterminer: 'its', possessivePronoun: 'its', reflexive: 'itself', pluralVerbs: false },
-  { id: 'xe', label: 'xe/xem', subject: 'xe', object: 'xem', possessiveDeterminer: 'xyr', possessivePronoun: 'xyrs', reflexive: 'xemself', pluralVerbs: false },
+  {
+    id: 'she',
+    label: 'she/her',
+    subject: 'she',
+    object: 'her',
+    possessiveDeterminer: 'her',
+    possessivePronoun: 'hers',
+    reflexive: 'herself',
+    pluralVerbs: false,
+  },
+  {
+    id: 'he',
+    label: 'he/him',
+    subject: 'he',
+    object: 'him',
+    possessiveDeterminer: 'his',
+    possessivePronoun: 'his',
+    reflexive: 'himself',
+    pluralVerbs: false,
+  },
+  {
+    id: 'they',
+    label: 'they/them',
+    subject: 'they',
+    object: 'them',
+    possessiveDeterminer: 'their',
+    possessivePronoun: 'theirs',
+    reflexive: 'themself',
+    pluralVerbs: true,
+  },
+  {
+    id: 'it',
+    label: 'it/its',
+    subject: 'it',
+    object: 'it',
+    possessiveDeterminer: 'its',
+    possessivePronoun: 'its',
+    reflexive: 'itself',
+    pluralVerbs: false,
+  },
+  {
+    id: 'xe',
+    label: 'xe/xem',
+    subject: 'xe',
+    object: 'xem',
+    possessiveDeterminer: 'xyr',
+    possessivePronoun: 'xyrs',
+    reflexive: 'xemself',
+    pluralVerbs: false,
+  },
 ];
 
-export type PronounSlot = 'subject' | 'object' | 'possessiveDeterminer' | 'possessivePronoun' | 'reflexive';
+export type PronounSlot =
+  | 'subject'
+  | 'object'
+  | 'possessiveDeterminer'
+  | 'possessivePronoun'
+  | 'reflexive';
 
 const FIRST: Record<PronounSlot, string> = {
-  subject: 'I', object: 'me', possessiveDeterminer: 'my', possessivePronoun: 'mine', reflexive: 'myself',
+  subject: 'I',
+  object: 'me',
+  possessiveDeterminer: 'my',
+  possessivePronoun: 'mine',
+  reflexive: 'myself',
 };
 const SECOND: Record<PronounSlot, string> = {
-  subject: 'you', object: 'you', possessiveDeterminer: 'your', possessivePronoun: 'yours', reflexive: 'yourself',
+  subject: 'you',
+  object: 'you',
+  possessiveDeterminer: 'your',
+  possessivePronoun: 'yours',
+  reflexive: 'yourself',
 };
 
 /** Token names accepted for pronouns. They are written in they/them form. */
@@ -27,18 +85,28 @@ export const PRONOUN_TOKENS: Record<string, PronounSlot> = {
   themselves: 'reflexive',
 };
 
-export function pronoun(person: GrammaticalPerson, set: PronounSet, slot: PronounSlot): string {
+export function pronoun(
+  person: GrammaticalPerson,
+  set: PronounSet,
+  slot: PronounSlot
+): string {
   if (person === 'first') return FIRST[slot];
   if (person === 'second') return SECOND[slot];
   return set[slot];
 }
 
 /** Whether verbs agree in the plural/"you" form for this person. */
-export function usesBaseVerb(person: GrammaticalPerson, set: PronounSet): boolean {
+export function usesBaseVerb(
+  person: GrammaticalPerson,
+  set: PronounSet
+): boolean {
   return person !== 'third' || set.pluralVerbs;
 }
 
-const IRREGULAR: Record<string, { third: string; first?: string; base?: string }> = {
+const IRREGULAR: Record<
+  string,
+  { third: string; first?: string; base?: string }
+> = {
   be: { third: 'is', first: 'am', base: 'are' },
   is: { third: 'is', first: 'am', base: 'are' },
   are: { third: 'is', first: 'am', base: 'are' },
@@ -61,7 +129,11 @@ export function thirdPersonSingular(verb: string): string {
  * active subject. "be"/"is"/"are" and a few other irregulars are handled.
  * Only the first word is conjugated, so "hold still" -> "holds still".
  */
-export function conjugate(verbPhrase: string, person: GrammaticalPerson, set: PronounSet): string {
+export function conjugate(
+  verbPhrase: string,
+  person: GrammaticalPerson,
+  set: PronounSet
+): string {
   const [verb, ...rest] = verbPhrase.trim().split(/\s+/);
   if (!verb) return verbPhrase;
   const lower = verb.toLowerCase();
@@ -73,7 +145,11 @@ export function conjugate(verbPhrase: string, person: GrammaticalPerson, set: Pr
   return [out, ...rest].join(' ');
 }
 
-export type TermForm = 'singular' | 'plural' | 'possessive' | 'pluralPossessive';
+export type TermForm =
+  | 'singular'
+  | 'plural'
+  | 'possessive'
+  | 'pluralPossessive';
 
 export function possessiveOf(word: string): string {
   return /s$/i.test(word) ? `${word}'` : `${word}'s`;
@@ -95,7 +171,10 @@ export function formOf(forms: TermForms, form: TermForm): string {
     case 'possessive':
       return forms.possessive || possessiveOf(forms.singular);
     case 'pluralPossessive':
-      return forms.pluralPossessive || possessiveOf(forms.plural || pluralOf(forms.singular));
+      return (
+        forms.pluralPossessive ||
+        possessiveOf(forms.plural || pluralOf(forms.singular))
+      );
   }
 }
 

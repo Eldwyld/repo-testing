@@ -1,5 +1,9 @@
 /** Browser file helpers: local download and file picker (no network). */
-export function download(filename: string, text: string, type = 'application/json') {
+export function download(
+  filename: string,
+  text: string,
+  type = 'application/json'
+) {
   const blob = new Blob([text], { type });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -22,4 +26,3 @@ export function readFile(): Promise<string | null> {
     input.click();
   });
 }
-

@@ -77,7 +77,12 @@ const Bridge: Module = {
         set(forgePaths.lastEnginePaused, true);
         pipe(Pause.setPaused(true));
       }
-      if (view.status === 'running' && state.lastStatus === 'break' && enginePaused) pipe(Pause.setPaused(false));
+      if (
+        view.status === 'running' &&
+        state.lastStatus === 'break' &&
+        enginePaused
+      )
+        pipe(Pause.setPaused(false));
     }
 
     const image = get(Image.paths)?.currentImage;
@@ -104,7 +109,10 @@ const Bridge: Module = {
 const run: Module[] = [Clock, Pace, Stroke, RandomImages, Cues, Bridge];
 
 const start = Composer.pipe(...run.map(ModuleManager.load));
-const stop = Composer.pipe(...run.map(m => ModuleManager.unload(m.id)), Composer.set(intensityPath, undefined));
+const stop = Composer.pipe(
+  ...run.map(m => ModuleManager.unload(m.id)),
+  Composer.set(intensityPath, undefined)
+);
 
 const Forge = definePlugin({
   sdk: 'Forge',
@@ -120,7 +128,10 @@ const Forge = definePlugin({
   enter: () => Mode.setMode(FORGE_MODE),
   leave: () => Mode.setMode('classic'),
 
-  activate: Composer.pipe(Mode.register({ id: FORGE_MODE, name: 'Forge' }), Mode.whenMode(FORGE_MODE, start)),
+  activate: Composer.pipe(
+    Mode.register({ id: FORGE_MODE, name: 'Forge' }),
+    Mode.whenMode(FORGE_MODE, start)
+  ),
 
   update: Composer.pipe(
     Mode.onEnter(FORGE_MODE, () => start),

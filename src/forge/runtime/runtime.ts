@@ -19,16 +19,36 @@
  */
 import pkg from '../../../package.json';
 import { Rng } from '../core/rng';
-import { ComplianceCheck, createCheckScheduleState, dueCheck, markShown, CheckScheduleState } from '../checks/checks';
+import {
+  ComplianceCheck,
+  createCheckScheduleState,
+  dueCheck,
+  markShown,
+  CheckScheduleState,
+} from '../checks/checks';
 import { compileConfig, CompiledConfig } from '../config/library';
 import { ForgeConfig } from '../config/schema';
 import { CompiledPack } from '../events/validate';
-import { createEngineState, EngineEffect, EngineInput, EngineLog, EngineState, engineTick, engineTrigger, buildScope } from '../events/runner';
+import {
+  createEngineState,
+  EngineEffect,
+  EngineInput,
+  EngineLog,
+  EngineState,
+  engineTick,
+  engineTrigger,
+  buildScope,
+} from '../events/runner';
 import { IdentityProfile, AnatomyProfile, PronounSet } from '../identity/types';
 import { narrate, NarrationContext } from '../identity/render';
 import { resolveDictionaries } from '../identity/resolve';
 import { composeLine, hypnoInterval, hypnoLine } from '../narrative/compose';
-import { PromptTemplate, promptsForTrigger, validateResponse, PromptValidation } from '../prompts/prompts';
+import {
+  PromptTemplate,
+  promptsForTrigger,
+  validateResponse,
+  PromptValidation,
+} from '../prompts/prompts';
 import { SessionRecorder } from '../session/recorder';
 import { EndReason, SessionRecord } from '../session/types';
 
@@ -172,7 +192,10 @@ export class SessionRuntime {
   constructor(config: ForgeConfig, opts: RuntimeOptions = {}) {
     this.config = structuredClone(config);
     this.compiled = compileConfig(this.config);
-    this.seed = opts.seed ?? config.session.seed ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    this.seed =
+      opts.seed ??
+      config.session.seed ??
+      `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     this.tickMs = opts.tickMs ?? 50;
     this.rng = Rng.fromSeed(`${this.seed}:runtime`);
     this.engine = createEngineState(`${this.seed}:engine`);
@@ -181,19 +204,26 @@ export class SessionRuntime {
 
     const lib = this.compiled.library;
     const s = config.session;
-    this.identity = lib.identities[s.identityId] ?? Object.values(lib.identities)[0];
+    this.identity =
+      lib.identities[s.identityId] ?? Object.values(lib.identities)[0];
     this.anatomy = lib.anatomy[s.anatomyId] ?? Object.values(lib.anatomy)[0];
-    this.pronouns = (s.pronounsOverride && lib.pronouns[s.pronounsOverride]) || this.identity.pronouns;
-    if (s.personOverride) this.identity = { ...this.identity, person: s.personOverride };
+    this.pronouns =
+      (s.pronounsOverride && lib.pronouns[s.pronounsOverride]) ||
+      this.identity.pronouns;
+    if (s.personOverride)
+      this.identity = { ...this.identity, person: s.personOverride };
     this.intensity = this.clampIntensity(s.startIntensity);
     this.pace = s.paceMin;
     this.phase = s.warmupSeconds > 0 ? 'warmup' : 'active';
     this.promptsEnabled = config.prompts.enabled;
     this.checksEnabled = config.checks.enabled;
-    if (config.safety.breaks.enabled) this.nextBreakAt = config.safety.breaks.everyMinutes * 60000;
+    if (config.safety.breaks.enabled)
+      this.nextBreakAt = config.safety.breaks.everyMinutes * 60000;
 
     this.recorder = new SessionRecorder({
-      sessionId: opts.sessionId ?? `s-${this.seed.replace(/[^a-z0-9]/gi, '').slice(0, 24) || 'session'}`,
+      sessionId:
+        opts.sessionId ??
+        `s-${this.seed.replace(/[^a-z0-9]/gi, '').slice(0, 24) || 'session'}`,
       startedAt: opts.startedAt ?? new Date(),
       config: config.logging.embedConfig ? this.config : undefined,
       replay: {
@@ -212,16 +242,36 @@ export class SessionRuntime {
   // ------------------------------------------------------------------ helpers
 
   get ceiling(): number {
-    const base = Math.min(this.config.safety.intensityCeiling, this.identity.intensity.max);
-    return this.ceilingOverride === null ? base : Math.min(base, this.ceilingOverride);
+    const base = Math.min(
+      this.config.safety.intensityCeiling,
+      this.identity.intensity.max
+    );
+    return this.ceilingOverride === null
+      ? base
+      : Math.min(base, this.ceilingOverride);
   }
 
   private clampIntensity(n: number) {
-    return Math.max(this.identity?.intensity.min ?? 0, Math.min(this.ceiling, n));
+    return Math.max(
+      this.identity?.intensity.min ?? 0,
+      Math.min(this.ceiling, n)
+    );
   }
 
-  private log(type: Parameters<SessionRecorder['push']>[0], source: Parameters<SessionRecorder['push']>[3], data: Record<string, unknown> = {}, eventId?: string) {
-    return this.recorder.push(type, this.wallMs, this.activeMs, source, data as never, eventId);
+  private log(
+    type: Parameters<SessionRecorder['push']>[0],
+    source: Parameters<SessionRecorder['push']>[3],
+    data: Record<string, unknown> = {},
+    eventId?: string
+  ) {
+    return this.recorder.push(
+      type,
+      this.wallMs,
+      this.activeMs,
+      source,
+      data as never,
+      eventId
+    );
   }
 
   private narrationContext(style?: string): NarrationContext {
@@ -248,14 +298,18 @@ export class SessionRuntime {
   private renderText(template: string): string {
     const r = narrate(template, this.narrationContext());
     if (r.blocked.length) {
-      this.log('error', 'system', { message: `text blocked by content guard: ${r.blocked.join(', ')}` });
+      this.log('error', 'system', {
+        message: `text blocked by content guard: ${r.blocked.join(', ')}`,
+      });
       return '';
     }
     return r.text;
   }
 
   private readMs(seconds: number | undefined) {
-    return seconds === undefined ? undefined : seconds * 1000 * this.config.accessibility.readingTimeMultiplier;
+    return seconds === undefined
+      ? undefined
+      : seconds * 1000 * this.config.accessibility.readingTimeMultiplier;
   }
 
   private engineInput(): EngineInput {
@@ -271,7 +325,9 @@ export class SessionRuntime {
       checks: this.checkStats,
       prompts: this.promptStats,
       identity: { id: this.identity.id, category: this.identity.category },
-      activeStyles: this.config.session.styleMix.filter(m => m.strength > 0).map(m => m.styleId),
+      activeStyles: this.config.session.styleMix
+        .filter(m => m.strength > 0)
+        .map(m => m.styleId),
       mediaTags: this.mediaTags,
       resolved: this.resolved,
       answers: this.answers,
@@ -313,11 +369,27 @@ export class SessionRuntime {
       anatomyId: this.anatomy.id,
       configHash: this.recorder.record.replay.configHash,
     });
-    this.log('identity_set', 'system', { identityId: this.identity.id, category: this.identity.category, pronouns: this.pronouns.id, person: this.identity.person });
-    this.log('styles_set', 'system', { styles: this.config.session.styleMix.filter(m => m.strength > 0).map(m => m.styleId) });
-    this.log('pace_changed', 'system', { value: this.pace, previousValue: null });
+    this.log('identity_set', 'system', {
+      identityId: this.identity.id,
+      category: this.identity.category,
+      pronouns: this.pronouns.id,
+      person: this.identity.person,
+    });
+    this.log('styles_set', 'system', {
+      styles: this.config.session.styleMix
+        .filter(m => m.strength > 0)
+        .map(m => m.styleId),
+    });
+    this.log('pace_changed', 'system', {
+      value: this.pace,
+      previousValue: null,
+    });
     this.log('phase_changed', 'system', { value: this.phase });
-    for (const e of this.compiled.errors) this.log('error', 'system', { message: `event configuration: ${e.eventId ? `[${e.eventId}] ` : ''}${e.message}`, recovery: 'events disabled for this session' });
+    for (const e of this.compiled.errors)
+      this.log('error', 'system', {
+        message: `event configuration: ${e.eventId ? `[${e.eventId}] ` : ''}${e.message}`,
+        recovery: 'events disabled for this session',
+      });
   }
 
   /** Advance wall time by dtMs (any size); work happens in fixed steps. */
@@ -341,7 +413,10 @@ export class SessionRuntime {
     if (this.breakUntilWall !== null) {
       if (this.wallMs >= this.breakUntilWall) {
         this.breakUntilWall = null;
-        this.log('resume', 'safety', { reason: 'scheduled_break', safety: true });
+        this.log('resume', 'safety', {
+          reason: 'scheduled_break',
+          safety: true,
+        });
       } else return;
     }
     if (this.paused) return;
@@ -349,17 +424,30 @@ export class SessionRuntime {
     this.activeMs += dt;
 
     if (this.nextBreakAt !== null && this.activeMs >= this.nextBreakAt) {
-      this.nextBreakAt = this.activeMs + this.config.safety.breaks.everyMinutes * 60000;
-      this.breakUntilWall = this.wallMs + this.config.safety.breaks.lengthSeconds * 1000;
-      this.log('pause', 'safety', { reason: 'scheduled_break', safety: true, seconds: this.config.safety.breaks.lengthSeconds });
+      this.nextBreakAt =
+        this.activeMs + this.config.safety.breaks.everyMinutes * 60000;
+      this.breakUntilWall =
+        this.wallMs + this.config.safety.breaks.lengthSeconds * 1000;
+      this.log('pause', 'safety', {
+        reason: 'scheduled_break',
+        safety: true,
+        seconds: this.config.safety.breaks.lengthSeconds,
+      });
       return;
     }
 
-    if (this.phase === 'warmup' && this.activeMs >= this.config.session.warmupSeconds * 1000) this.setPhase('active', 'system');
+    if (
+      this.phase === 'warmup' &&
+      this.activeMs >= this.config.session.warmupSeconds * 1000
+    )
+      this.setPhase('active', 'system');
 
     if (this.phase === 'active') {
       const before = this.intensity;
-      this.intensity = this.clampIntensity(this.intensity + (dt / (this.config.session.durationSeconds * 1000)) * 10);
+      this.intensity = this.clampIntensity(
+        this.intensity +
+          (dt / (this.config.session.durationSeconds * 1000)) * 10
+      );
       this.afterIntensityChange(before, 'system');
     }
 
@@ -370,23 +458,47 @@ export class SessionRuntime {
     this.tickChecks(dt);
   }
 
-  private afterIntensityChange(before: number, source: 'system' | 'engine' | 'user') {
+  private afterIntensityChange(
+    before: number,
+    source: 'system' | 'engine' | 'user'
+  ) {
     if (before === this.intensity) return;
-    this.recorder.intensity(this.wallMs, this.activeMs, this.intensity, source, source !== 'system');
-    for (const p of promptsForTrigger(this.config.prompts.templates, { on: 'intensity_threshold', value: this.intensity, previous: before }))
+    this.recorder.intensity(
+      this.wallMs,
+      this.activeMs,
+      this.intensity,
+      source,
+      source !== 'system'
+    );
+    for (const p of promptsForTrigger(this.config.prompts.templates, {
+      on: 'intensity_threshold',
+      value: this.intensity,
+      previous: before,
+    }))
       this.openPrompt(p, {});
   }
 
-  private setPhase(phase: string, source: 'system' | 'engine', eventId?: string) {
+  private setPhase(
+    phase: string,
+    source: 'system' | 'engine',
+    eventId?: string
+  ) {
     if (phase === this.phase) return;
     this.phase = phase;
     this.log('phase_changed', source, { value: phase }, eventId);
-    for (const p of promptsForTrigger(this.config.prompts.templates, { on: 'phase_change', value: phase })) this.openPrompt(p, { eventId });
+    for (const p of promptsForTrigger(this.config.prompts.templates, {
+      on: 'phase_change',
+      value: phase,
+    }))
+      this.openPrompt(p, { eventId });
   }
 
   private expireLines() {
-    this.lines = this.lines.filter(l => l.until === undefined || l.until > this.activeMs);
-    if (this.hypno && this.activeMs - this.hypno.at > 6000) this.hypno = undefined;
+    this.lines = this.lines.filter(
+      l => l.until === undefined || l.until > this.activeMs
+    );
+    if (this.hypno && this.activeMs - this.hypno.at > 6000)
+      this.hypno = undefined;
   }
 
   private tickEngine() {
@@ -395,8 +507,18 @@ export class SessionRuntime {
     let result = engineTick(this.pack, this.engineOptions, this.engine, input);
     if (!result.state.frames.length && this.pendingTriggers.length) {
       const target = this.pendingTriggers.shift()!;
-      const t = engineTrigger(this.pack, this.engineOptions, result.state, input, target);
-      result = { state: t.state, effects: [...result.effects, ...t.effects], log: [...result.log, ...t.log] };
+      const t = engineTrigger(
+        this.pack,
+        this.engineOptions,
+        result.state,
+        input,
+        target
+      );
+      result = {
+        state: t.state,
+        effects: [...result.effects, ...t.effects],
+        log: [...result.log, ...t.log],
+      };
     }
     this.resolved = [];
     this.engine = result.state;
@@ -412,11 +534,21 @@ export class SessionRuntime {
     if (entry.type === 'event_started' && entry.eventId) {
       data.count = this.engine.counts[entry.eventId] ?? 1;
       data.name = this.pack?.events[entry.eventId]?.name;
-      for (const p of promptsForTrigger(this.config.prompts.templates, { on: 'event', value: entry.eventId })) this.openPrompt(p, { eventId: entry.eventId });
-      if (entry.eventId === 'half_pace') for (const p of promptsForTrigger(this.config.prompts.templates, { on: 'half_pace' })) this.openPrompt(p, { eventId: entry.eventId });
+      for (const p of promptsForTrigger(this.config.prompts.templates, {
+        on: 'event',
+        value: entry.eventId,
+      }))
+        this.openPrompt(p, { eventId: entry.eventId });
+      if (entry.eventId === 'half_pace')
+        for (const p of promptsForTrigger(this.config.prompts.templates, {
+          on: 'half_pace',
+        }))
+          this.openPrompt(p, { eventId: entry.eventId });
     }
     if (entry.type === 'event_completed' || entry.type === 'event_terminated')
-      this.lines = this.lines.filter(l => !(l.eventId === entry.eventId && l.until === undefined));
+      this.lines = this.lines.filter(
+        l => !(l.eventId === entry.eventId && l.until === undefined)
+      );
     if (entry.type === 'engine_error') {
       this.log('error', 'engine', data, entry.eventId);
       return;
@@ -426,8 +558,13 @@ export class SessionRuntime {
 
   private pushLine(line: Omit<DisplayLine, 'id'>) {
     // A newer line from the same event replaces the older one.
-    if (line.eventId) this.lines = this.lines.filter(l => l.eventId !== line.eventId || l.kind !== line.kind);
-    this.lines = [...this.lines, { ...line, id: `l${++this.lineSeq}` }].slice(-4);
+    if (line.eventId)
+      this.lines = this.lines.filter(
+        l => l.eventId !== line.eventId || l.kind !== line.kind
+      );
+    this.lines = [...this.lines, { ...line, id: `l${++this.lineSeq}` }].slice(
+      -4
+    );
   }
 
   private applyEffect(effect: EngineEffect) {
@@ -440,9 +577,20 @@ export class SessionRuntime {
         if (effect.template) {
           styleId = effect.styles[0];
           const r = narrate(effect.template, this.narrationContext(styleId));
-          const excluded = this.config.safety.excludedPhrases.find(x => x && r.text.toLowerCase().includes(x.toLowerCase()));
+          const excluded = this.config.safety.excludedPhrases.find(
+            x => x && r.text.toLowerCase().includes(x.toLowerCase())
+          );
           if (r.blocked.length || excluded) {
-            this.log('event_skipped', 'system', { reason: r.blocked.length ? `blocked term ${r.blocked[0]}` : `excluded phrase "${excluded}"` }, id);
+            this.log(
+              'event_skipped',
+              'system',
+              {
+                reason: r.blocked.length
+                  ? `blocked term ${r.blocked[0]}`
+                  : `excluded phrase "${excluded}"`,
+              },
+              id
+            );
             return;
           }
           text = r.text;
@@ -457,30 +605,84 @@ export class SessionRuntime {
             only: effect.styles,
           });
           if (!line) {
-            this.log('event_skipped', 'system', { reason: 'no eligible narrative style or phrase' }, id);
+            this.log(
+              'event_skipped',
+              'system',
+              { reason: 'no eligible narrative style or phrase' },
+              id
+            );
             return;
           }
-          text = line.transition ? `${line.transition} ${line.text}` : line.text;
+          text = line.transition
+            ? `${line.transition} ${line.text}`
+            : line.text;
           styleId = line.styleId;
           this.lastStyle = line.styleId;
         }
-        this.pushLine({ kind: 'narration', eventId: id, title: text, styleId, until: this.activeMs + this.readMs(effect.durationMs / 1000)! });
-        this.log('narration_shown', 'engine', { ...(this.config.logging.recordNarrationText ? { text } : {}), styleId: styleId ?? null }, id);
+        this.pushLine({
+          kind: 'narration',
+          eventId: id,
+          title: text,
+          styleId,
+          until: this.activeMs + this.readMs(effect.durationMs / 1000)!,
+        });
+        this.log(
+          'narration_shown',
+          'engine',
+          {
+            ...(this.config.logging.recordNarrationText ? { text } : {}),
+            styleId: styleId ?? null,
+          },
+          id
+        );
         return;
       }
       case 'message': {
-        const existing = this.lines.find(l => l.eventId === id && l.kind === 'message');
-        const title = effect.title ? this.renderText(effect.title) : existing?.title ?? '';
-        const description = effect.description ? this.renderText(effect.description) : undefined;
+        const existing = this.lines.find(
+          l => l.eventId === id && l.kind === 'message'
+        );
+        const title = effect.title
+          ? this.renderText(effect.title)
+          : (existing?.title ?? '');
+        const description = effect.description
+          ? this.renderText(effect.description)
+          : undefined;
         if (!title && !description) return;
-        this.pushLine({ kind: 'message', eventId: id, title, description, until: effect.durationMs !== undefined ? this.activeMs + this.readMs(effect.durationMs / 1000)! : undefined });
-        this.log('message_shown', 'engine', { title: this.config.logging.recordNarrationText ? title : '', description: description ?? null }, id);
+        this.pushLine({
+          kind: 'message',
+          eventId: id,
+          title,
+          description,
+          until:
+            effect.durationMs !== undefined
+              ? this.activeMs + this.readMs(effect.durationMs / 1000)!
+              : undefined,
+        });
+        this.log(
+          'message_shown',
+          'engine',
+          {
+            title: this.config.logging.recordNarrationText ? title : '',
+            description: description ?? null,
+          },
+          id
+        );
         return;
       }
       case 'setPace': {
-        const value = r2(Math.min(this.config.session.paceMax, Math.max(this.config.session.paceMin, effect.value)));
+        const value = r2(
+          Math.min(
+            this.config.session.paceMax,
+            Math.max(this.config.session.paceMin, effect.value)
+          )
+        );
         if (value === this.pace) return;
-        this.log('pace_changed', 'engine', { value, previousValue: this.pace }, id);
+        this.log(
+          'pace_changed',
+          'engine',
+          { value, previousValue: this.pace },
+          id
+        );
         this.pace = value;
         return;
       }
@@ -498,9 +700,16 @@ export class SessionRuntime {
         return;
       }
       case 'prompt': {
-        const p = this.config.prompts.templates.find(x => x.id === effect.promptId);
+        const p = this.config.prompts.templates.find(
+          x => x.id === effect.promptId
+        );
         if (!p || !this.promptAvailable(p)) {
-          this.log('event_skipped', 'system', { reason: 'prompt disabled', promptId: effect.promptId }, id);
+          this.log(
+            'event_skipped',
+            'system',
+            { reason: 'prompt disabled', promptId: effect.promptId },
+            id
+          );
           if (effect.token) this.resolved.push(effect.token);
           return;
         }
@@ -510,7 +719,12 @@ export class SessionRuntime {
       case 'check': {
         const c = this.config.checks.items.find(x => x.id === effect.checkId);
         if (!c || !c.enabled || !this.checksEnabled) {
-          this.log('event_skipped', 'system', { reason: 'check disabled', checkId: effect.checkId }, id);
+          this.log(
+            'event_skipped',
+            'system',
+            { reason: 'check disabled', checkId: effect.checkId },
+            id
+          );
           if (effect.token) this.resolved.push(effect.token);
           return;
         }
@@ -526,7 +740,10 @@ export class SessionRuntime {
       case 'climax':
         this.climax = effect.result;
         this.log('climax', 'engine', { result: effect.result }, id);
-        for (const p of promptsForTrigger(this.config.prompts.templates, { on: 'climax' })) this.openPrompt(p, { eventId: id });
+        for (const p of promptsForTrigger(this.config.prompts.templates, {
+          on: 'climax',
+        }))
+          this.openPrompt(p, { eventId: id });
         return;
       case 'end':
         this.end('completed', 'engine', effect.reason);
@@ -537,35 +754,81 @@ export class SessionRuntime {
   private tickHypno(dt: number) {
     if (!this.config.hypno.enabled || this.phase !== 'active') return;
     this.hypnoTimer += dt;
-    if (this.hypnoTimer < hypnoInterval(this.config.hypno, this.intensity)) return;
+    if (this.hypnoTimer < hypnoInterval(this.config.hypno, this.intensity))
+      return;
     this.hypnoTimer = 0;
     const transition = this.rng.chance(this.config.hypno.transitionFrequency);
-    const line = hypnoLine(this.config.hypno, this.narrationContext(), { transition });
+    const line = hypnoLine(this.config.hypno, this.narrationContext(), {
+      transition,
+    });
     if (!line) return;
     const excluded = this.config.safety.excludedPhrases;
-    if (line.lines.some(l => excluded.some(x => x && l.toLowerCase().includes(x.toLowerCase())))) return;
+    if (
+      line.lines.some(l =>
+        excluded.some(x => x && l.toLowerCase().includes(x.toLowerCase()))
+      )
+    )
+      return;
     this.hypno = { ...line, at: this.activeMs };
-    this.log('hypno_shown', 'engine', { patternId: line.patternId, ...(this.config.logging.recordNarrationText ? { lines: line.lines } : {}) });
+    this.log('hypno_shown', 'engine', {
+      patternId: line.patternId,
+      ...(this.config.logging.recordNarrationText ? { lines: line.lines } : {}),
+    });
   }
 
   private tickChecks(dt: number) {
     if (!this.checksEnabled || this.check || this.prompt) return;
-    const c = dueCheck(this.config.checks.items, this.checkSchedule, this.activeMs, dt, this.rng, buildScope(this.engine, this.engineInput()), this.config.checks.globalMinGapSeconds);
+    const c = dueCheck(
+      this.config.checks.items,
+      this.checkSchedule,
+      this.activeMs,
+      dt,
+      this.rng,
+      buildScope(this.engine, this.engineInput()),
+      this.config.checks.globalMinGapSeconds
+    );
     if (c) this.openCheck(c, {});
   }
 
   private tickTimeouts() {
-    if (this.check?.deadline !== undefined && this.activeMs >= this.check.deadline) {
-      const c = this.config.checks.items.find(x => x.id === this.check!.checkId);
+    if (
+      this.check?.deadline !== undefined &&
+      this.activeMs >= this.check.deadline
+    ) {
+      const c = this.config.checks.items.find(
+        x => x.id === this.check!.checkId
+      );
       const countsAs = c?.unansweredAs ?? 'skipped';
-      this.log('check_timeout', 'system', { checkId: this.check.checkId, instanceId: this.check.instanceId, countsAs }, this.check.eventId);
+      this.log(
+        'check_timeout',
+        'system',
+        {
+          checkId: this.check.checkId,
+          instanceId: this.check.instanceId,
+          countsAs,
+        },
+        this.check.eventId
+      );
       if (countsAs === 'skipped') this.checkStats.skipped++;
       this.closeCheck();
     }
-    if (this.prompt?.deadline !== undefined && this.activeMs >= this.prompt.deadline) {
-      const p = this.config.prompts.templates.find(x => x.id === this.prompt!.promptId);
+    if (
+      this.prompt?.deadline !== undefined &&
+      this.activeMs >= this.prompt.deadline
+    ) {
+      const p = this.config.prompts.templates.find(
+        x => x.id === this.prompt!.promptId
+      );
       if (p?.onTimeout === 'skip') {
-        this.log('prompt_timeout', 'system', { promptId: this.prompt.promptId, instanceId: this.prompt.instanceId }, this.prompt.eventId);
+        this.log(
+          'prompt_timeout',
+          'system',
+          {
+            promptId: this.prompt.promptId,
+            instanceId: this.prompt.instanceId,
+          },
+          this.prompt.eventId
+        );
         this.promptStats.skipped++;
         this.answers[this.prompt.promptId] = 'timeout';
         this.closePrompt();
@@ -575,18 +838,34 @@ export class SessionRuntime {
 
   // ------------------------------------------------------------------ prompts
 
-  private openPrompt(p: PromptTemplate, opts: { eventId?: string; token?: string; force?: boolean }) {
+  private openPrompt(
+    p: PromptTemplate,
+    opts: { eventId?: string; token?: string; force?: boolean }
+  ) {
     if (!this.promptAvailable(p)) {
       if (opts.token) this.resolved.push(opts.token);
       return;
     }
     const now = this.activeMs;
-    const tooSoon = this.promptLast[p.id] !== undefined && now - this.promptLast[p.id] < p.cooldownSeconds * 1000;
-    const tooMany = p.maxPerSession > 0 && (this.promptCounts[p.id] ?? 0) >= p.maxPerSession;
+    const tooSoon =
+      this.promptLast[p.id] !== undefined &&
+      now - this.promptLast[p.id] < p.cooldownSeconds * 1000;
+    const tooMany =
+      p.maxPerSession > 0 && (this.promptCounts[p.id] ?? 0) >= p.maxPerSession;
     if (this.prompt || (!opts.force && (tooSoon || tooMany))) {
       // One prompt at a time; a blocked event-locked prompt must not stall the engine.
       if (opts.token) this.resolved.push(opts.token);
-      this.log('event_skipped', 'system', { reason: this.prompt ? 'another prompt is open' : 'prompt cooldown/limit', promptId: p.id }, opts.eventId);
+      this.log(
+        'event_skipped',
+        'system',
+        {
+          reason: this.prompt
+            ? 'another prompt is open'
+            : 'prompt cooldown/limit',
+          promptId: p.id,
+        },
+        opts.eventId
+      );
       return;
     }
     this.promptLast[p.id] = now;
@@ -605,11 +884,23 @@ export class SessionRuntime {
       minLength: p.minLength,
       maxLength: p.maxLength,
       openedAt: now,
-      deadline: p.timeoutSeconds > 0 ? now + p.timeoutSeconds * 1000 : undefined,
+      deadline:
+        p.timeoutSeconds > 0 ? now + p.timeoutSeconds * 1000 : undefined,
       problems: [],
       awaitingAck: false,
     };
-    this.log('prompt_shown', 'system', { promptId: p.id, instanceId: this.prompt.instanceId, text: this.prompt.text, blocking: p.blocking, required: p.required }, opts.eventId);
+    this.log(
+      'prompt_shown',
+      'system',
+      {
+        promptId: p.id,
+        instanceId: this.prompt.instanceId,
+        text: this.prompt.text,
+        blocking: p.blocking,
+        required: p.required,
+      },
+      opts.eventId
+    );
   }
 
   private closePrompt() {
@@ -619,9 +910,25 @@ export class SessionRuntime {
 
   /** Vocabulary the identity's dictionaries offer (for object-language checks). */
   identityVocabulary(categories: readonly string[] = []): string[] {
-    const chain = resolveDictionaries(this.identity.dictionaries, this.compiled.library.dictionaries).chain;
-    const words = chain.flatMap(d => d.entries.filter(e => e.enabled && (!categories.length || categories.includes(e.category))).map(e => e.text));
-    return [...new Set([...words, this.identity.objectNoun.singular, ...this.identity.preferredWords])].filter(w => !w.includes('{'));
+    const chain = resolveDictionaries(
+      this.identity.dictionaries,
+      this.compiled.library.dictionaries
+    ).chain;
+    const words = chain.flatMap(d =>
+      d.entries
+        .filter(
+          e =>
+            e.enabled && (!categories.length || categories.includes(e.category))
+        )
+        .map(e => e.text)
+    );
+    return [
+      ...new Set([
+        ...words,
+        this.identity.objectNoun.singular,
+        ...this.identity.preferredWords,
+      ]),
+    ].filter(w => !w.includes('{'));
   }
 
   submitPrompt(instanceId: string, text: string): PromptValidation | null {
@@ -631,18 +938,48 @@ export class SessionRuntime {
     if (inst.awaitingAck) return null;
     const result = validateResponse(text, p, {
       identityVocabulary: this.identityVocabulary(p.vocabulary.categories),
-      objectNouns: [this.identity.objectNoun.singular, this.identity.displayName],
+      objectNouns: [
+        this.identity.objectNoun.singular,
+        this.identity.displayName,
+      ],
     });
     inst.attempts++;
-    const record = this.config.logging.recordPromptText ? { response: text.slice(0, 5000) } : { responseLength: text.length };
+    const record = this.config.logging.recordPromptText
+      ? { response: text.slice(0, 5000) }
+      : { responseLength: text.length };
     if (!result.valid && inst.attempts < inst.maxAttempts) {
       inst.problems = result.problems;
-      this.log('prompt_invalid', 'user', { promptId: p.id, instanceId, attempt: inst.attempts, problems: result.problems, ...record }, inst.eventId);
+      this.log(
+        'prompt_invalid',
+        'user',
+        {
+          promptId: p.id,
+          instanceId,
+          attempt: inst.attempts,
+          problems: result.problems,
+          ...record,
+        },
+        inst.eventId
+      );
       return result;
     }
     const accepted = result.valid || p.retry.onExhausted === 'accept';
-    if (!accepted) return this.skipPrompt(instanceId, 'retries exhausted'), result;
-    this.log('prompt_submitted', 'user', { promptId: p.id, instanceId, valid: result.valid, attempts: inst.attempts, matched: result.matched, perspective: result.perspective, ...record }, inst.eventId);
+    if (!accepted)
+      return (this.skipPrompt(instanceId, 'retries exhausted'), result);
+    this.log(
+      'prompt_submitted',
+      'user',
+      {
+        promptId: p.id,
+        instanceId,
+        valid: result.valid,
+        attempts: inst.attempts,
+        matched: result.matched,
+        perspective: result.perspective,
+        ...record,
+      },
+      inst.eventId
+    );
     this.promptStats.completed++;
     this.answers[p.id] = 'submitted';
     if (p.resume === 'acknowledge') {
@@ -653,14 +990,20 @@ export class SessionRuntime {
   }
 
   acknowledgePrompt(instanceId: string) {
-    if (this.prompt?.instanceId === instanceId && this.prompt.awaitingAck) this.closePrompt();
+    if (this.prompt?.instanceId === instanceId && this.prompt.awaitingAck)
+      this.closePrompt();
   }
 
   /** Always available, even for required prompts. */
   skipPrompt(instanceId: string, reason = 'user skipped') {
     const inst = this.prompt;
     if (!inst || inst.instanceId !== instanceId) return;
-    this.log('prompt_skipped', 'user', { promptId: inst.promptId, instanceId, reason, required: inst.required }, inst.eventId);
+    this.log(
+      'prompt_skipped',
+      'user',
+      { promptId: inst.promptId, instanceId, reason, required: inst.required },
+      inst.eventId
+    );
     this.promptStats.skipped++;
     this.answers[inst.promptId] = 'skipped';
     this.closePrompt();
@@ -670,21 +1013,35 @@ export class SessionRuntime {
   disablePrompts(promptId?: string) {
     if (promptId) this.disabledPrompts.add(promptId);
     else this.promptsEnabled = false;
-    this.log('marker', 'user', { label: promptId ? `prompt ${promptId} disabled` : 'prompts disabled' });
-    if (this.prompt && (!promptId || this.prompt.promptId === promptId)) this.skipPrompt(this.prompt.instanceId, 'disabled by user');
+    this.log('marker', 'user', {
+      label: promptId ? `prompt ${promptId} disabled` : 'prompts disabled',
+    });
+    if (this.prompt && (!promptId || this.prompt.promptId === promptId))
+      this.skipPrompt(this.prompt.instanceId, 'disabled by user');
   }
 
   /** Host signals that a video/media segment finished playing. */
   mediaSegmentEnded() {
-    for (const p of promptsForTrigger(this.config.prompts.templates, { on: 'media_segment_end' })) this.openPrompt(p, {});
+    for (const p of promptsForTrigger(this.config.prompts.templates, {
+      on: 'media_segment_end',
+    }))
+      this.openPrompt(p, {});
   }
 
   // ------------------------------------------------------------------ checks
 
-  private openCheck(c: ComplianceCheck, opts: { eventId?: string; token?: string }) {
+  private openCheck(
+    c: ComplianceCheck,
+    opts: { eventId?: string; token?: string }
+  ) {
     if (this.check) {
       if (opts.token) this.resolved.push(opts.token);
-      this.log('event_skipped', 'system', { reason: 'another check is open', checkId: c.id }, opts.eventId);
+      this.log(
+        'event_skipped',
+        'system',
+        { reason: 'another check is open', checkId: c.id },
+        opts.eventId
+      );
       return;
     }
     markShown(this.checkSchedule, c.id, this.activeMs);
@@ -697,10 +1054,23 @@ export class SessionRuntime {
       text: this.renderText(c.text),
       responses: c.responses.map(r => ({ id: r.id, label: r.label })),
       openedAt: this.activeMs,
-      deadline: c.timeoutSeconds > 0 ? this.activeMs + c.timeoutSeconds * 1000 : undefined,
+      deadline:
+        c.timeoutSeconds > 0
+          ? this.activeMs + c.timeoutSeconds * 1000
+          : undefined,
       blocking: !!opts.token,
     };
-    this.log('check_shown', 'system', { checkId: c.id, instanceId: this.check.instanceId, kind: c.kind, text: this.check.text }, opts.eventId);
+    this.log(
+      'check_shown',
+      'system',
+      {
+        checkId: c.id,
+        instanceId: this.check.instanceId,
+        kind: c.kind,
+        text: this.check.text,
+      },
+      opts.eventId
+    );
   }
 
   private closeCheck() {
@@ -714,7 +1084,19 @@ export class SessionRuntime {
     const c = this.config.checks.items.find(x => x.id === inst.checkId)!;
     const response = c.responses.find(r => r.id === responseId);
     if (!response) return;
-    this.log('check_answered', 'user', { checkId: c.id, instanceId, kind: c.kind, response: response.id, value: response.value, latencyMs: this.activeMs - inst.openedAt }, inst.eventId);
+    this.log(
+      'check_answered',
+      'user',
+      {
+        checkId: c.id,
+        instanceId,
+        kind: c.kind,
+        response: response.id,
+        value: response.value,
+        latencyMs: this.activeMs - inst.openedAt,
+      },
+      inst.eventId
+    );
     this.answers[c.id] = response.id;
     if (response.value === 'skip') this.checkStats.skipped++;
     else {
@@ -724,11 +1106,23 @@ export class SessionRuntime {
     }
     if (response.stat) {
       const { name, add } = response.stat;
-      this.engine = { ...this.engine, stats: { ...this.engine.stats, [name]: (this.engine.stats[name] ?? 0) + add } };
-      this.log('stat_changed', 'user', { name, add, value: this.engine.stats[name] }, inst.eventId);
+      this.engine = {
+        ...this.engine,
+        stats: {
+          ...this.engine.stats,
+          [name]: (this.engine.stats[name] ?? 0) + add,
+        },
+      };
+      this.log(
+        'stat_changed',
+        'user',
+        { name, add, value: this.engine.stats[name] },
+        inst.eventId
+      );
     }
     // Consequences only when the user explicitly configured one.
-    if (response.value === 'negative' && c.onNegativeEvent) this.pendingTriggers.push(c.onNegativeEvent);
+    if (response.value === 'negative' && c.onNegativeEvent)
+      this.pendingTriggers.push(c.onNegativeEvent);
     this.closeCheck();
   }
 
@@ -736,7 +1130,17 @@ export class SessionRuntime {
     this.checksEnabled = false;
     this.log('marker', 'user', { label: 'checks disabled' });
     if (this.check) {
-      this.log('check_timeout', 'system', { checkId: this.check.checkId, instanceId: this.check.instanceId, countsAs: 'skipped', reason: 'checks disabled by user' }, this.check.eventId);
+      this.log(
+        'check_timeout',
+        'system',
+        {
+          checkId: this.check.checkId,
+          instanceId: this.check.instanceId,
+          countsAs: 'skipped',
+          reason: 'checks disabled by user',
+        },
+        this.check.eventId
+      );
       this.closeCheck();
     }
   }
@@ -748,9 +1152,16 @@ export class SessionRuntime {
     this.paused = true;
     this.pauseReason = reason;
     this.pauses += reason === 'user' ? 1 : 0;
-    this.log('pause', reason === 'safety' ? 'safety' : 'user', { reason, ...(reason === 'safety' ? { safety: true } : {}) });
+    this.log('pause', reason === 'safety' ? 'safety' : 'user', {
+      reason,
+      ...(reason === 'safety' ? { safety: true } : {}),
+    });
     // Safety pauses never open prompts.
-    if (reason === 'user') for (const p of promptsForTrigger(this.config.prompts.templates, { on: 'pause' })) this.openPrompt(p, {});
+    if (reason === 'user')
+      for (const p of promptsForTrigger(this.config.prompts.templates, {
+        on: 'pause',
+      }))
+        this.openPrompt(p, {});
   }
 
   resume() {
@@ -758,7 +1169,10 @@ export class SessionRuntime {
     this.paused = false;
     this.pauseReason = undefined;
     this.log('resume', 'user', {});
-    for (const p of promptsForTrigger(this.config.prompts.templates, { on: 'resume' })) this.openPrompt(p, {});
+    for (const p of promptsForTrigger(this.config.prompts.templates, {
+      on: 'resume',
+    }))
+      this.openPrompt(p, {});
   }
 
   togglePause() {
@@ -769,7 +1183,10 @@ export class SessionRuntime {
   /** Immediate termination. Never depends on prompts, events or tallies. */
   terminate(reason: 'user_terminated' | 'emergency_stop' = 'user_terminated') {
     if (this.ended) return;
-    this.log('termination', reason === 'emergency_stop' ? 'safety' : 'user', { reason, safety: reason === 'emergency_stop' });
+    this.log('termination', reason === 'emergency_stop' ? 'safety' : 'user', {
+      reason,
+      safety: reason === 'emergency_stop',
+    });
     this.end(reason, 'user');
   }
 
@@ -777,30 +1194,66 @@ export class SessionRuntime {
     this.ceilingOverride = Math.max(0, Math.min(10, value));
     const before = this.intensity;
     this.intensity = this.clampIntensity(this.intensity);
-    this.log('marker', 'user', { label: `intensity ceiling set to ${this.ceilingOverride}` });
+    this.log('marker', 'user', {
+      label: `intensity ceiling set to ${this.ceilingOverride}`,
+    });
     this.afterIntensityChange(before, 'user');
   }
 
   setMedia(mediaId: string | undefined, extraTags: string[] = []) {
-    const tags = [...new Set([...(mediaId ? this.config.media.tags[mediaId] ?? [] : []), ...extraTags])];
+    const tags = [
+      ...new Set([
+        ...(mediaId ? (this.config.media.tags[mediaId] ?? []) : []),
+        ...extraTags,
+      ]),
+    ];
     this.mediaTags = tags;
-    this.log('media_shown', 'system', { ...(mediaId ? { mediaId } : {}), tags });
+    this.log('media_shown', 'system', {
+      ...(mediaId ? { mediaId } : {}),
+      tags,
+    });
     this.pack = applyMediaWeights(this.basePack, this.config, tags);
   }
 
-  private end(reason: EndReason, source: 'user' | 'engine' | 'system' | 'safety', detail?: string) {
+  private end(
+    reason: EndReason,
+    source: 'user' | 'engine' | 'system' | 'safety',
+    detail?: string
+  ) {
     if (this.ended) return;
     this.ended = true;
     this.endReason = reason;
     if (this.prompt) {
-      this.log('prompt_skipped', 'system', { promptId: this.prompt.promptId, instanceId: this.prompt.instanceId, reason: 'session ended' }, this.prompt.eventId);
+      this.log(
+        'prompt_skipped',
+        'system',
+        {
+          promptId: this.prompt.promptId,
+          instanceId: this.prompt.instanceId,
+          reason: 'session ended',
+        },
+        this.prompt.eventId
+      );
       this.prompt = undefined;
     }
     if (this.check) {
-      this.log('check_timeout', 'system', { checkId: this.check.checkId, instanceId: this.check.instanceId, countsAs: 'skipped', reason: 'session ended' }, this.check.eventId);
+      this.log(
+        'check_timeout',
+        'system',
+        {
+          checkId: this.check.checkId,
+          instanceId: this.check.instanceId,
+          countsAs: 'skipped',
+          reason: 'session ended',
+        },
+        this.check.eventId
+      );
       this.check = undefined;
     }
-    if (detail) this.log('marker', source === 'safety' ? 'safety' : 'system', { label: `ended: ${detail}` });
+    if (detail)
+      this.log('marker', source === 'safety' ? 'safety' : 'system', {
+        label: `ended: ${detail}`,
+      });
     this.recorder.end(this.wallMs, this.activeMs, reason);
   }
 
@@ -813,10 +1266,21 @@ export class SessionRuntime {
 
   private snapshot(): RuntimeView {
     const top = this.engine.frames[this.engine.frames.length - 1];
-    const runningId = top?.kind === 'event' ? top.eventId : top?.kind === 'sequence' ? top.sequenceId : undefined;
+    const runningId =
+      top?.kind === 'event'
+        ? top.eventId
+        : top?.kind === 'sequence'
+          ? top.sequenceId
+          : undefined;
     const limit = this.config.safety.maxDurationMinutes * 60000;
     return {
-      status: this.ended ? 'ended' : this.breakUntilWall !== null ? 'break' : this.paused ? 'paused' : 'running',
+      status: this.ended
+        ? 'ended'
+        : this.breakUntilWall !== null
+          ? 'break'
+          : this.paused
+            ? 'paused'
+            : 'running',
       phase: this.phase,
       intensity: this.intensity,
       ceiling: this.ceiling,
@@ -825,13 +1289,24 @@ export class SessionRuntime {
       activeMs: this.activeMs,
       wallMs: this.wallMs,
       durationLimitMs: limit > 0 ? limit : null,
-      identity: { id: this.identity.id, name: this.identity.displayName, category: this.identity.category },
-      styles: this.config.session.styleMix.filter(m => m.strength > 0).map(m => m.styleId),
+      identity: {
+        id: this.identity.id,
+        name: this.identity.displayName,
+        category: this.identity.category,
+      },
+      styles: this.config.session.styleMix
+        .filter(m => m.strength > 0)
+        .map(m => m.styleId),
       lines: this.lines,
       hypno: this.hypno,
       prompt: this.prompt,
       check: this.check,
-      running: runningId ? { eventId: runningId, name: this.pack?.events[runningId]?.name ?? runningId } : undefined,
+      running: runningId
+        ? {
+            eventId: runningId,
+            name: this.pack?.events[runningId]?.name ?? runningId,
+          }
+        : undefined,
       pauseReason: this.pauseReason,
       endReason: this.endReason,
       climax: this.climax,
@@ -839,7 +1314,9 @@ export class SessionRuntime {
       mediaRequests: this.mediaRequests,
       promptsEnabled: this.promptsEnabled,
       checksEnabled: this.checksEnabled,
-      configErrors: this.compiled.errors.map(e => `${e.eventId ? `[${e.eventId}] ` : ''}${e.message}`),
+      configErrors: this.compiled.errors.map(
+        e => `${e.eventId ? `[${e.eventId}] ` : ''}${e.message}`
+      ),
     };
   }
 
@@ -853,13 +1330,22 @@ export class SessionRuntime {
 }
 
 /** Multiply event weights for events associated with the current media tags. */
-export function applyMediaWeights(pack: CompiledPack | null, config: ForgeConfig, tags: readonly string[]): CompiledPack | null {
+export function applyMediaWeights(
+  pack: CompiledPack | null,
+  config: ForgeConfig,
+  tags: readonly string[]
+): CompiledPack | null {
   if (!pack) return pack;
   const assoc = config.media.associations.filter(a => tags.includes(a.tag));
   if (!assoc.length) return pack;
   const events = { ...pack.events };
   for (const a of assoc)
-    for (const id of a.events) if (events[id]) events[id] = { ...events[id], weight: events[id].weight * a.weightMultiplier };
+    for (const id of a.events)
+      if (events[id])
+        events[id] = {
+          ...events[id],
+          weight: events[id].weight * a.weightMultiplier,
+        };
   return { ...pack, events };
 }
 

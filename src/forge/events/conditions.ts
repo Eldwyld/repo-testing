@@ -42,7 +42,11 @@ export const conditionV: Validator<Condition> = v.lazy(() =>
     v.refine(
       v.object(
         {
-          field: v.string({ min: 1, max: 120, pattern: /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z0-9_:-]+)*$/ }),
+          field: v.string({
+            min: 1,
+            max: 120,
+            pattern: /^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z0-9_:-]+)*$/,
+          }),
           operator: v.enum(OPERATORS),
           value: v.union(scalarV, v.array(scalarV, { max: 100 })).optional(),
         },
@@ -50,13 +54,22 @@ export const conditionV: Validator<Condition> = v.lazy(() =>
       ),
       c => {
         if (c.operator === 'exists' || c.operator === 'notExists') return null;
-        if (c.value === undefined) return `operator "${c.operator}" requires a value`;
-        if ((c.operator === 'in' || c.operator === 'notIn') && !Array.isArray(c.value))
+        if (c.value === undefined)
+          return `operator "${c.operator}" requires a value`;
+        if (
+          (c.operator === 'in' || c.operator === 'notIn') &&
+          !Array.isArray(c.value)
+        )
           return `operator "${c.operator}" requires an array value`;
         if (c.operator === 'between') {
-          if (!Array.isArray(c.value) || c.value.length !== 2 || c.value.some(x => typeof x !== 'number'))
+          if (
+            !Array.isArray(c.value) ||
+            c.value.length !== 2 ||
+            c.value.some(x => typeof x !== 'number')
+          )
             return 'operator "between" requires [min, max] numbers';
-          if ((c.value[0] as number) > (c.value[1] as number)) return 'between: min exceeds max (always false)';
+          if ((c.value[0] as number) > (c.value[1] as number))
+            return 'between: min exceeds max (always false)';
         }
         if (/^(greater|less)/.test(c.operator) && typeof c.value !== 'number')
           return `operator "${c.operator}" requires a number`;
@@ -67,7 +80,17 @@ export const conditionV: Validator<Condition> = v.lazy(() =>
 ) as Validator<Condition>;
 
 /** Known field roots; anything else is reported by the validator as a warning. */
-export const FIELD_ROOTS = ['session', 'identity', 'styles', 'media', 'history', 'stats', 'vars', 'answers', 'event'] as const;
+export const FIELD_ROOTS = [
+  'session',
+  'identity',
+  'styles',
+  'media',
+  'history',
+  'stats',
+  'vars',
+  'answers',
+  'event',
+] as const;
 
 export const FIELD_DOCS: Record<string, string> = {
   'session.intensity': 'Current intensity, 0–10',
@@ -89,7 +112,8 @@ export const FIELD_DOCS: Record<string, string> = {
   'history.count.<eventId>': 'How many times an event ran',
   'history.total': 'Total events run',
   'stats.<name>': 'User-defined statistic counters',
-  'vars.<name>': 'Sequence variables (vars.climaxResult is set by the climax step)',
+  'vars.<name>':
+    'Sequence variables (vars.climaxResult is set by the climax step)',
   'answers.<id>': 'Latest response value of a check or prompt',
   'event.iteration': 'Current loop iteration of the running event',
 };
@@ -107,9 +131,15 @@ export function getField(scope: ConditionScope, field: string): unknown {
 }
 
 const eq = (a: unknown, b: unknown) =>
-  typeof a === 'string' && typeof b === 'string' ? a.toLowerCase() === b.toLowerCase() : a === b;
+  typeof a === 'string' && typeof b === 'string'
+    ? a.toLowerCase() === b.toLowerCase()
+    : a === b;
 
-function compare(actual: unknown, op: Operator, value: Scalar | Scalar[] | undefined): boolean {
+function compare(
+  actual: unknown,
+  op: Operator,
+  value: Scalar | Scalar[] | undefined
+): boolean {
   switch (op) {
     case 'exists':
       return actual !== undefined && actual !== null;
@@ -145,7 +175,13 @@ function compare(actual: unknown, op: Operator, value: Scalar | Scalar[] | undef
   }
 }
 
-export type EvalTrace = { field: string; operator: Operator; expected: unknown; actual: unknown; result: boolean };
+export type EvalTrace = {
+  field: string;
+  operator: Operator;
+  expected: unknown;
+  actual: unknown;
+  result: boolean;
+};
 
 /**
  * Evaluate a condition. Malformed nodes and excessive depth evaluate to
@@ -162,16 +198,30 @@ export function evaluate(
     out?.errors?.push(`condition nesting exceeds ${MAX_CONDITION_DEPTH}`);
     return false;
   }
-  if ('all' in condition) return condition.all.every(c => evaluate(c, scope, out, depth + 1));
-  if ('any' in condition) return condition.any.some(c => evaluate(c, scope, out, depth + 1));
-  if ('not' in condition) return !evaluate(condition.not, scope, out, depth + 1);
-  if ('field' in condition && (OPERATORS as readonly string[]).includes(condition.operator)) {
+  if ('all' in condition)
+    return condition.all.every(c => evaluate(c, scope, out, depth + 1));
+  if ('any' in condition)
+    return condition.any.some(c => evaluate(c, scope, out, depth + 1));
+  if ('not' in condition)
+    return !evaluate(condition.not, scope, out, depth + 1);
+  if (
+    'field' in condition &&
+    (OPERATORS as readonly string[]).includes(condition.operator)
+  ) {
     const actual = getField(scope, condition.field);
     const result = compare(actual, condition.operator, condition.value);
-    out?.trace?.push({ field: condition.field, operator: condition.operator, expected: condition.value, actual, result });
+    out?.trace?.push({
+      field: condition.field,
+      operator: condition.operator,
+      expected: condition.value,
+      actual,
+      result,
+    });
     return result;
   }
-  out?.errors?.push(`malformed condition: ${JSON.stringify(condition).slice(0, 120)}`);
+  out?.errors?.push(
+    `malformed condition: ${JSON.stringify(condition).slice(0, 120)}`
+  );
   return false;
 }
 
@@ -185,8 +235,10 @@ export function conditionFields(condition: Condition | undefined): string[] {
 
 export function countNodes(condition: Condition | undefined): number {
   if (!condition) return 0;
-  if ('all' in condition) return 1 + condition.all.reduce((n, c) => n + countNodes(c), 0);
-  if ('any' in condition) return 1 + condition.any.reduce((n, c) => n + countNodes(c), 0);
+  if ('all' in condition)
+    return 1 + condition.all.reduce((n, c) => n + countNodes(c), 0);
+  if ('any' in condition)
+    return 1 + condition.any.reduce((n, c) => n + countNodes(c), 0);
   if ('not' in condition) return 1 + countNodes(condition.not);
   return 1;
 }
@@ -195,32 +247,67 @@ export function countNodes(condition: Condition | undefined): number {
  * Detect simple contradictions among sibling numeric bounds in an `all`
  * block, e.g. intensity >= 8 AND intensity < 3. Returns human messages.
  */
-export function findContradictions(condition: Condition | undefined, path = 'conditions'): Issue[] {
+export function findContradictions(
+  condition: Condition | undefined,
+  path = 'conditions'
+): Issue[] {
   if (!condition) return [];
   const issues: Issue[] = [];
   if ('all' in condition) {
-    const bounds = new Map<string, { lo: number; hi: number; eqs: Set<string> }>();
+    const bounds = new Map<
+      string,
+      { lo: number; hi: number; eqs: Set<string> }
+    >();
     for (const c of condition.all) {
       if (!('field' in c)) continue;
-      const b = bounds.get(c.field) ?? { lo: -Infinity, hi: Infinity, eqs: new Set<string>() };
+      const b = bounds.get(c.field) ?? {
+        lo: -Infinity,
+        hi: Infinity,
+        eqs: new Set<string>(),
+      };
       const n = c.value as number;
       switch (c.operator) {
-        case 'greaterThan': b.lo = Math.max(b.lo, n + 1e-9); break;
-        case 'greaterThanOrEqual': b.lo = Math.max(b.lo, n); break;
-        case 'lessThan': b.hi = Math.min(b.hi, n - 1e-9); break;
-        case 'lessThanOrEqual': b.hi = Math.min(b.hi, n); break;
-        case 'between': b.lo = Math.max(b.lo, (c.value as number[])[0]); b.hi = Math.min(b.hi, (c.value as number[])[1]); break;
-        case 'equals': b.eqs.add(JSON.stringify(c.value)); break;
+        case 'greaterThan':
+          b.lo = Math.max(b.lo, n + 1e-9);
+          break;
+        case 'greaterThanOrEqual':
+          b.lo = Math.max(b.lo, n);
+          break;
+        case 'lessThan':
+          b.hi = Math.min(b.hi, n - 1e-9);
+          break;
+        case 'lessThanOrEqual':
+          b.hi = Math.min(b.hi, n);
+          break;
+        case 'between':
+          b.lo = Math.max(b.lo, (c.value as number[])[0]);
+          b.hi = Math.min(b.hi, (c.value as number[])[1]);
+          break;
+        case 'equals':
+          b.eqs.add(JSON.stringify(c.value));
+          break;
       }
       bounds.set(c.field, b);
     }
     for (const [field, b] of bounds) {
-      if (b.lo > b.hi) issues.push({ path, message: `contradictory bounds on "${field}" (can never be true)` });
-      if (b.eqs.size > 1) issues.push({ path, message: `"${field}" must equal several different values (can never be true)` });
+      if (b.lo > b.hi)
+        issues.push({
+          path,
+          message: `contradictory bounds on "${field}" (can never be true)`,
+        });
+      if (b.eqs.size > 1)
+        issues.push({
+          path,
+          message: `"${field}" must equal several different values (can never be true)`,
+        });
     }
-    condition.all.forEach((c, i) => issues.push(...findContradictions(c, `${path}.all[${i}]`)));
+    condition.all.forEach((c, i) =>
+      issues.push(...findContradictions(c, `${path}.all[${i}]`))
+    );
   } else if ('any' in condition) {
-    condition.any.forEach((c, i) => issues.push(...findContradictions(c, `${path}.any[${i}]`)));
+    condition.any.forEach((c, i) =>
+      issues.push(...findContradictions(c, `${path}.any[${i}]`))
+    );
   } else if ('not' in condition) {
     issues.push(...findContradictions(condition.not, `${path}.not`));
   }

@@ -40,7 +40,15 @@ export const BUILTIN_PROHIBITED: readonly Rule[] = Object.freeze([
   ),
 ]);
 
-const LEET: Record<string, string> = { '0': 'o', '1': 'i', '3': 'e', '4': 'a', '@': 'a', '5': 's', '7': 't' };
+const LEET: Record<string, string> = {
+  '0': 'o',
+  '1': 'i',
+  '3': 'e',
+  '4': 'a',
+  '@': 'a',
+  '5': 's',
+  '7': 't',
+};
 
 /** Lower-case, strip diacritics, undo trivial leetspeak, collapse separators. */
 export function normalizeForGuard(text: string): string {
@@ -58,23 +66,39 @@ export function normalizeForGuard(text: string): string {
 function compile(rules: readonly Rule[]) {
   return rules.map(rule => {
     const norm = normalizeForGuard(rule.term);
-    const escaped = norm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/ /g, '\\s+');
-    return { ...rule, re: new RegExp(`(?:^|[^a-z])(${escaped})(?:'s)?(?=$|[^a-z])`, 'i') };
+    const escaped = norm
+      .replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+      .replace(/ /g, '\\s+');
+    return {
+      ...rule,
+      re: new RegExp(`(?:^|[^a-z])(${escaped})(?:'s)?(?=$|[^a-z])`, 'i'),
+    };
   });
 }
 
 const builtinCompiled = compile(BUILTIN_PROHIBITED);
 
-export function scanText(text: string, extra: readonly string[] = []): GuardFinding[] {
+export function scanText(
+  text: string,
+  extra: readonly string[] = []
+): GuardFinding[] {
   if (!text) return [];
   const norm = normalizeForGuard(text);
   const findings: GuardFinding[] = [];
   const all = extra.length
-    ? [...builtinCompiled, ...compile(extra.filter(Boolean).map(term => ({ term, category: 'user' as const })))]
+    ? [
+        ...builtinCompiled,
+        ...compile(
+          extra
+            .filter(Boolean)
+            .map(term => ({ term, category: 'user' as const }))
+        ),
+      ]
     : builtinCompiled;
   for (const rule of all) {
     const m = rule.re.exec(norm);
-    if (m) findings.push({ term: rule.term, category: rule.category, match: m[1] });
+    if (m)
+      findings.push({ term: rule.term, category: rule.category, match: m[1] });
   }
   return findings;
 }
@@ -87,11 +111,16 @@ export function isClean(text: string, extra: readonly string[] = []) {
  * Walk every string in an arbitrary JSON-like value. Object keys that are
  * pure identifiers are scanned too, so `{"pet": ...}` cannot sneak in.
  */
-export function scanValue(value: unknown, extra: readonly string[] = [], path = ''): GuardFinding[] {
+export function scanValue(
+  value: unknown,
+  extra: readonly string[] = [],
+  path = ''
+): GuardFinding[] {
   const out: GuardFinding[] = [];
   const visit = (node: unknown, at: string) => {
     if (typeof node === 'string') {
-      for (const f of scanText(node, extra)) out.push({ ...f, path: at || '(root)' });
+      for (const f of scanText(node, extra))
+        out.push({ ...f, path: at || '(root)' });
     } else if (Array.isArray(node)) {
       node.forEach((child, i) => visit(child, `${at}[${i}]`));
     } else if (node && typeof node === 'object') {

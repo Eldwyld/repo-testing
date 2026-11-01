@@ -29,10 +29,20 @@ export function ForgeConfigProvider({ children }: { children: ReactNode }) {
   }, [store]);
 
   const compiled = useMemo(() => compileConfig(draft), [draft]);
-  const changed = useMemo(() => changedCategories(saved, draft), [saved, draft]);
+  const changed = useMemo(
+    () => changedCategories(saved, draft),
+    [saved, draft]
+  );
 
-  const update = useCallback((fn: (c: ForgeConfig) => ForgeConfig) => setDraft(c => fn(structuredClone(c))), []);
-  const replace = useCallback((c: ForgeConfig) => setDraft(structuredClone(c)), []);
+  const update = useCallback(
+    (fn: (c: ForgeConfig) => ForgeConfig) =>
+      setDraft(c => fn(structuredClone(c))),
+    []
+  );
+  const replace = useCallback(
+    (c: ForgeConfig) => setDraft(structuredClone(c)),
+    []
+  );
 
   const save = useCallback(async () => {
     const r = validateConfig(draft);
@@ -53,8 +63,34 @@ export function ForgeConfigProvider({ children }: { children: ReactNode }) {
   }, [saved]);
 
   const value = useMemo(
-    () => ({ ready, saved, draft, compiled, changed, notes, saveError, store, update, replace, save, discard }),
-    [ready, saved, draft, compiled, changed, notes, saveError, store, update, replace, save, discard]
+    () => ({
+      ready,
+      saved,
+      draft,
+      compiled,
+      changed,
+      notes,
+      saveError,
+      store,
+      update,
+      replace,
+      save,
+      discard,
+    }),
+    [
+      ready,
+      saved,
+      draft,
+      compiled,
+      changed,
+      notes,
+      saveError,
+      store,
+      update,
+      replace,
+      save,
+      discard,
+    ]
   );
 
   // Warn before closing the tab with unsaved changes.
@@ -65,5 +101,7 @@ export function ForgeConfigProvider({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
   }, [changed.length]);
 
-  return <ConfigContext.Provider value={value}>{children}</ConfigContext.Provider>;
+  return (
+    <ConfigContext.Provider value={value}>{children}</ConfigContext.Provider>
+  );
 }

@@ -9,8 +9,20 @@ import { ConditionScope, evaluate } from '../events/conditions';
 import { parseCondition } from '../events/dsl';
 import { conditionInputV, GAME_PHASES } from '../events/types';
 
-export const CHECK_KINDS = ['instruction', 'hand_position', 'posture', 'attention', 'self_report', 'custom'] as const;
-export const RESPONSE_VALUES = ['positive', 'negative', 'neutral', 'skip'] as const;
+export const CHECK_KINDS = [
+  'instruction',
+  'hand_position',
+  'posture',
+  'attention',
+  'self_report',
+  'custom',
+] as const;
+export const RESPONSE_VALUES = [
+  'positive',
+  'negative',
+  'neutral',
+  'skip',
+] as const;
 export type ResponseValue = (typeof RESPONSE_VALUES)[number];
 
 export const checkResponseV = v.object({
@@ -18,7 +30,9 @@ export const checkResponseV = v.object({
   label: v.string({ min: 1, max: 60 }),
   value: v.enum(RESPONSE_VALUES),
   /** Optional statistic increment, configured explicitly by the user. */
-  stat: v.object({ name: id(), add: v.number({ min: -100, max: 100 }) }).optional(),
+  stat: v
+    .object({ name: id(), add: v.number({ min: -100, max: 100 }) })
+    .optional(),
 });
 export type CheckResponse = Infer<typeof checkResponseV>;
 
@@ -30,7 +44,9 @@ export const complianceCheckV = v.object({
   text: v.string({ min: 1, max: 300 }),
   responses: v.array(checkResponseV, { min: 1, max: 8 }),
   schedule: v.object({
-    mode: v.enum(['random', 'interval', 'event_only'] as const).default('random'),
+    mode: v
+      .enum(['random', 'interval', 'event_only'] as const)
+      .default('random'),
     /** random: expected checks per minute (Poisson rate). */
     perMinute: v.number({ min: 0, max: 10 }).default(0.2),
     /** interval: fixed spacing with optional jitter. */
@@ -60,11 +76,20 @@ export const STANDARD_RESPONSES: CheckResponse[] = [
   { id: 'prefer_not', label: 'Prefer not to answer', value: 'neutral' },
 ];
 
-const C = (c: Partial<ComplianceCheck> & Pick<ComplianceCheck, 'id' | 'name' | 'text'>): ComplianceCheck => ({
+const C = (
+  c: Partial<ComplianceCheck> & Pick<ComplianceCheck, 'id' | 'name' | 'text'>
+): ComplianceCheck => ({
   enabled: true,
   kind: 'custom',
   responses: STANDARD_RESPONSES,
-  schedule: { mode: 'random', perMinute: 0.2, intervalSeconds: 120, jitterSeconds: 20, minGapSeconds: 45, maxPerSession: 0 },
+  schedule: {
+    mode: 'random',
+    perMinute: 0.2,
+    intervalSeconds: 120,
+    jitterSeconds: 20,
+    minGapSeconds: 45,
+    maxPerSession: 0,
+  },
   phases: ['active'],
   timeoutSeconds: 20,
   unansweredAs: 'skipped',
@@ -74,24 +99,97 @@ const C = (c: Partial<ComplianceCheck> & Pick<ComplianceCheck, 'id' | 'name' | '
 });
 
 export const DEFAULT_CHECKS: ComplianceCheck[] = [
-  C({ id: 'instruction_following', name: 'Instruction following', kind: 'instruction', text: 'Are you following the current instruction?' }),
-  C({ id: 'hand_position', name: 'Hand position', kind: 'hand_position', text: 'Are {their} {hands} where they were told to be? (grip: {grip})', schedule: { mode: 'random', perMinute: 0.15, intervalSeconds: 120, jitterSeconds: 20, minGapSeconds: 60, maxPerSession: 0 } }),
-  C({ id: 'posture', name: 'Posture', kind: 'posture', text: 'Is the {object} holding the requested posture?', enabled: false }),
-  C({ id: 'attention', name: 'Attention', kind: 'attention', text: 'Are {their} eyes on the screen?', enabled: false }),
-  C({ id: 'self_report', name: 'Session state', kind: 'self_report', text: 'How is this going?', enabled: false, responses: [
-    { id: 'good', label: 'Good', value: 'positive' },
-    { id: 'okay', label: 'Okay', value: 'neutral' },
-    { id: 'too_much', label: 'Too much', value: 'neutral' },
-    { id: 'skip', label: 'Skip', value: 'skip' },
-  ] }),
-  C({ id: 'cleanup_done', name: 'Clean-up done', kind: 'instruction', text: 'Done cleaning up?', blocking: true, timeoutSeconds: 0, schedule: { mode: 'event_only', perMinute: 0, intervalSeconds: 120, jitterSeconds: 0, minGapSeconds: 0, maxPerSession: 0 }, phases: ['break', 'active'], eventIds: ['clean_up'], responses: [
-    { id: 'yes', label: 'I’m done', value: 'positive' },
-    { id: 'skip', label: 'Skip', value: 'skip' },
-  ] }),
-  C({ id: 'edging', name: 'Edging confirmation', kind: 'self_report', text: 'Are you on the edge?', blocking: true, timeoutSeconds: 0, schedule: { mode: 'event_only', perMinute: 0, intervalSeconds: 120, jitterSeconds: 0, minGapSeconds: 0, maxPerSession: 0 }, phases: ['finale', 'active'], eventIds: ['climax'], responses: [
-    { id: 'yes', label: 'I’m edging', value: 'positive' },
-    { id: 'no', label: 'I can’t', value: 'neutral' },
-  ] }),
+  C({
+    id: 'instruction_following',
+    name: 'Instruction following',
+    kind: 'instruction',
+    text: 'Are you following the current instruction?',
+  }),
+  C({
+    id: 'hand_position',
+    name: 'Hand position',
+    kind: 'hand_position',
+    text: 'Are {their} {hands} where they were told to be? (grip: {grip})',
+    schedule: {
+      mode: 'random',
+      perMinute: 0.15,
+      intervalSeconds: 120,
+      jitterSeconds: 20,
+      minGapSeconds: 60,
+      maxPerSession: 0,
+    },
+  }),
+  C({
+    id: 'posture',
+    name: 'Posture',
+    kind: 'posture',
+    text: 'Is the {object} holding the requested posture?',
+    enabled: false,
+  }),
+  C({
+    id: 'attention',
+    name: 'Attention',
+    kind: 'attention',
+    text: 'Are {their} eyes on the screen?',
+    enabled: false,
+  }),
+  C({
+    id: 'self_report',
+    name: 'Session state',
+    kind: 'self_report',
+    text: 'How is this going?',
+    enabled: false,
+    responses: [
+      { id: 'good', label: 'Good', value: 'positive' },
+      { id: 'okay', label: 'Okay', value: 'neutral' },
+      { id: 'too_much', label: 'Too much', value: 'neutral' },
+      { id: 'skip', label: 'Skip', value: 'skip' },
+    ],
+  }),
+  C({
+    id: 'cleanup_done',
+    name: 'Clean-up done',
+    kind: 'instruction',
+    text: 'Done cleaning up?',
+    blocking: true,
+    timeoutSeconds: 0,
+    schedule: {
+      mode: 'event_only',
+      perMinute: 0,
+      intervalSeconds: 120,
+      jitterSeconds: 0,
+      minGapSeconds: 0,
+      maxPerSession: 0,
+    },
+    phases: ['break', 'active'],
+    eventIds: ['clean_up'],
+    responses: [
+      { id: 'yes', label: 'I’m done', value: 'positive' },
+      { id: 'skip', label: 'Skip', value: 'skip' },
+    ],
+  }),
+  C({
+    id: 'edging',
+    name: 'Edging confirmation',
+    kind: 'self_report',
+    text: 'Are you on the edge?',
+    blocking: true,
+    timeoutSeconds: 0,
+    schedule: {
+      mode: 'event_only',
+      perMinute: 0,
+      intervalSeconds: 120,
+      jitterSeconds: 0,
+      minGapSeconds: 0,
+      maxPerSession: 0,
+    },
+    phases: ['finale', 'active'],
+    eventIds: ['climax'],
+    responses: [
+      { id: 'yes', label: 'I’m edging', value: 'positive' },
+      { id: 'no', label: 'I can’t', value: 'neutral' },
+    ],
+  }),
 ];
 
 export type CheckScheduleState = {
@@ -101,9 +199,17 @@ export type CheckScheduleState = {
   nextIntervalAt: Record<string, number>;
 };
 
-export const createCheckScheduleState = (): CheckScheduleState => ({ lastShownAt: {}, counts: {}, lastAnyAt: -Infinity, nextIntervalAt: {} });
+export const createCheckScheduleState = (): CheckScheduleState => ({
+  lastShownAt: {},
+  counts: {},
+  lastAnyAt: -Infinity,
+  nextIntervalAt: {},
+});
 
-const compiled = new WeakMap<object, ReturnType<typeof parseCondition> | null>();
+const compiled = new WeakMap<
+  object,
+  ReturnType<typeof parseCondition> | null
+>();
 function conditionOf(check: ComplianceCheck) {
   if (check.conditions === undefined) return undefined;
   if (typeof check.conditions !== 'string') return check.conditions;
@@ -114,7 +220,9 @@ function conditionOf(check: ComplianceCheck) {
       compiled.set(check, null);
     }
   }
-  return compiled.get(check) ?? { field: '__invalid__', operator: 'exists' as const };
+  return (
+    compiled.get(check) ?? { field: '__invalid__', operator: 'exists' as const }
+  );
 }
 
 /**
@@ -131,11 +239,16 @@ export function dueCheck(
   globalMinGapSeconds = 30
 ): ComplianceCheck | null {
   if (now - state.lastAnyAt < globalMinGapSeconds * 1000) return null;
-  const phase = (scope.session as { phase?: string } | undefined)?.phase ?? 'active';
+  const phase =
+    (scope.session as { phase?: string } | undefined)?.phase ?? 'active';
   for (const check of checks) {
     if (!check.enabled || check.schedule.mode === 'event_only') continue;
     if (!check.phases.includes(phase as never)) continue;
-    if (check.schedule.maxPerSession && (state.counts[check.id] ?? 0) >= check.schedule.maxPerSession) continue;
+    if (
+      check.schedule.maxPerSession &&
+      (state.counts[check.id] ?? 0) >= check.schedule.maxPerSession
+    )
+      continue;
     const last = state.lastShownAt[check.id] ?? -Infinity;
     if (now - last < check.schedule.minGapSeconds * 1000) continue;
     let due = false;
@@ -144,16 +257,29 @@ export function dueCheck(
       due = rng.chance(p);
     } else {
       if (state.nextIntervalAt[check.id] === undefined)
-        state.nextIntervalAt[check.id] = now + (check.schedule.intervalSeconds + rng.range(-1, 1) * check.schedule.jitterSeconds) * 1000;
+        state.nextIntervalAt[check.id] =
+          now +
+          (check.schedule.intervalSeconds +
+            rng.range(-1, 1) * check.schedule.jitterSeconds) *
+            1000;
       due = now >= state.nextIntervalAt[check.id];
-      if (due) state.nextIntervalAt[check.id] = now + (check.schedule.intervalSeconds + rng.range(-1, 1) * check.schedule.jitterSeconds) * 1000;
+      if (due)
+        state.nextIntervalAt[check.id] =
+          now +
+          (check.schedule.intervalSeconds +
+            rng.range(-1, 1) * check.schedule.jitterSeconds) *
+            1000;
     }
     if (due && evaluate(conditionOf(check), scope)) return check;
   }
   return null;
 }
 
-export function markShown(state: CheckScheduleState, checkId: string, now: number) {
+export function markShown(
+  state: CheckScheduleState,
+  checkId: string,
+  now: number
+) {
   state.lastShownAt[checkId] = now;
   state.counts[checkId] = (state.counts[checkId] ?? 0) + 1;
   state.lastAnyAt = now;
@@ -162,14 +288,28 @@ export function markShown(state: CheckScheduleState, checkId: string, now: numbe
 /** Preview/test mode: when would checks fire over a session, without running one? */
 export function previewSchedule(
   checks: readonly ComplianceCheck[],
-  opts: { durationSeconds: number; seed: string; tickMs?: number; phase?: string; globalMinGapSeconds?: number }
+  opts: {
+    durationSeconds: number;
+    seed: string;
+    tickMs?: number;
+    phase?: string;
+    globalMinGapSeconds?: number;
+  }
 ): { at: number; checkId: string }[] {
   const rng = Rng.fromSeed(opts.seed);
   const state = createCheckScheduleState();
   const tick = opts.tickMs ?? 250;
   const out: { at: number; checkId: string }[] = [];
   for (let t = 0; t <= opts.durationSeconds * 1000; t += tick) {
-    const c = dueCheck(checks, state, t, tick, rng, { session: { phase: opts.phase ?? 'active', elapsedSeconds: t / 1000 } }, opts.globalMinGapSeconds ?? 30);
+    const c = dueCheck(
+      checks,
+      state,
+      t,
+      tick,
+      rng,
+      { session: { phase: opts.phase ?? 'active', elapsedSeconds: t / 1000 } },
+      opts.globalMinGapSeconds ?? 30
+    );
     if (c) {
       markShown(state, c.id, t);
       out.push({ at: t, checkId: c.id });

@@ -46,29 +46,58 @@ export function summarize(record: SessionRecord): SessionSummary {
   };
 }
 
-const sortSummaries = (list: SessionSummary[]) => list.sort((a, b) => b.startedAt.localeCompare(a.startedAt));
+const sortSummaries = (list: SessionSummary[]) =>
+  list.sort((a, b) => b.startedAt.localeCompare(a.startedAt));
 
 function loadOrDefault(raw: unknown): { config: ForgeConfig; notes: string[] } {
   if (raw === undefined) return { config: defaultConfig(), notes: [] };
   const r = validateConfig(raw);
   if (r.ok) return { config: r.value, notes: r.notes };
-  return { config: defaultConfig(), notes: ['Stored configuration was invalid and has been replaced by defaults.', ...r.errors.slice(0, 5)] };
+  return {
+    config: defaultConfig(),
+    notes: [
+      'Stored configuration was invalid and has been replaced by defaults.',
+      ...r.errors.slice(0, 5),
+    ],
+  };
 }
 
 export class MemoryStore implements ForgeStore {
   config: unknown;
   presets = new Map<string, Preset>();
   sessions = new Map<string, SessionRecord>();
-  async loadConfig() { return loadOrDefault(this.config); }
-  async saveConfig(config: ForgeConfig) { this.config = structuredClone(config); }
-  async listPresets() { return [...this.presets.values()]; }
-  async savePreset(p: Preset) { this.presets.set(p.id, structuredClone(p)); }
-  async deletePreset(id: string) { this.presets.delete(id); }
-  async listSessions() { return sortSummaries([...this.sessions.values()].map(summarize)); }
-  async getSession(id: string) { return this.sessions.get(id); }
-  async saveSession(r: SessionRecord) { this.sessions.set(r.sessionId, structuredClone(r)); }
-  async deleteSession(id: string) { this.sessions.delete(id); }
-  async deleteAllSessions() { const n = this.sessions.size; this.sessions.clear(); return n; }
+  async loadConfig() {
+    return loadOrDefault(this.config);
+  }
+  async saveConfig(config: ForgeConfig) {
+    this.config = structuredClone(config);
+  }
+  async listPresets() {
+    return [...this.presets.values()];
+  }
+  async savePreset(p: Preset) {
+    this.presets.set(p.id, structuredClone(p));
+  }
+  async deletePreset(id: string) {
+    this.presets.delete(id);
+  }
+  async listSessions() {
+    return sortSummaries([...this.sessions.values()].map(summarize));
+  }
+  async getSession(id: string) {
+    return this.sessions.get(id);
+  }
+  async saveSession(r: SessionRecord) {
+    this.sessions.set(r.sessionId, structuredClone(r));
+  }
+  async deleteSession(id: string) {
+    this.sessions.delete(id);
+  }
+  async deleteAllSessions() {
+    const n = this.sessions.size;
+    this.sessions.clear();
+    return n;
+  }
 }
 
 interface ForgeDB extends DBSchema {
@@ -116,25 +145,39 @@ export class IdbStore implements ForgeStore {
   async saveSession(r: SessionRecord) {
     const db = await this.db;
     const tx = db.transaction(['sessions', 'sessionIndex'], 'readwrite');
-    await Promise.all([tx.objectStore('sessions').put(structuredClone(r)), tx.objectStore('sessionIndex').put(summarize(r)), tx.done]);
+    await Promise.all([
+      tx.objectStore('sessions').put(structuredClone(r)),
+      tx.objectStore('sessionIndex').put(summarize(r)),
+      tx.done,
+    ]);
   }
   async deleteSession(id: string) {
     const db = await this.db;
     const tx = db.transaction(['sessions', 'sessionIndex'], 'readwrite');
-    await Promise.all([tx.objectStore('sessions').delete(id), tx.objectStore('sessionIndex').delete(id), tx.done]);
+    await Promise.all([
+      tx.objectStore('sessions').delete(id),
+      tx.objectStore('sessionIndex').delete(id),
+      tx.done,
+    ]);
   }
   async deleteAllSessions() {
     const db = await this.db;
     const n = await db.count('sessions');
     const tx = db.transaction(['sessions', 'sessionIndex'], 'readwrite');
-    await Promise.all([tx.objectStore('sessions').clear(), tx.objectStore('sessionIndex').clear(), tx.done]);
+    await Promise.all([
+      tx.objectStore('sessions').clear(),
+      tx.objectStore('sessionIndex').clear(),
+      tx.done,
+    ]);
     return n;
   }
 }
 
 let shared: ForgeStore | null = null;
 export function getStore(): ForgeStore {
-  if (!shared) shared = typeof indexedDB === 'undefined' ? new MemoryStore() : new IdbStore();
+  if (!shared)
+    shared =
+      typeof indexedDB === 'undefined' ? new MemoryStore() : new IdbStore();
   return shared;
 }
 export function setStore(store: ForgeStore) {

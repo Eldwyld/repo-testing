@@ -76,7 +76,10 @@ export class Rng {
    * Weighted pick. Items with non-positive or non-finite weight are never
    * selected. Returns undefined when nothing is selectable.
    */
-  weighted<T>(items: readonly T[], weightOf: (item: T) => number): T | undefined {
+  weighted<T>(
+    items: readonly T[],
+    weightOf: (item: T) => number
+  ): T | undefined {
     const weights = items.map(i => {
       const w = weightOf(i);
       return Number.isFinite(w) && w > 0 ? w : 0;

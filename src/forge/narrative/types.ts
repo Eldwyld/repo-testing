@@ -33,7 +33,9 @@ export const narrativeStyleV = v.object({
   activation: conditionV.optional(),
   incompatibleWith: v.array(v.string()).default([]),
   transitions: v
-    .array(v.object({ to: v.string(), template: v.string({ max: 300 }) }), { max: 50 })
+    .array(v.object({ to: v.string(), template: v.string({ max: 300 }) }), {
+      max: 50,
+    })
     .default([]),
   builtin: v.boolean().optional(),
 });

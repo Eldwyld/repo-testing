@@ -45,11 +45,27 @@ export type SessionEventType = (typeof SESSION_EVENT_TYPES)[number];
 export const SOURCES = ['user', 'engine', 'system', 'safety'] as const;
 export type EventSource = (typeof SOURCES)[number];
 
-export const END_REASONS = ['completed', 'user_terminated', 'emergency_stop', 'duration_limit', 'error', 'interrupted'] as const;
+export const END_REASONS = [
+  'completed',
+  'user_terminated',
+  'emergency_stop',
+  'duration_limit',
+  'error',
+  'interrupted',
+] as const;
 export type EndReason = (typeof END_REASONS)[number];
 
-const scalar = v.union(v.string({ max: 5000 }), v.number(), v.boolean(), v.literal(null));
-const dataValue = v.union(scalar, v.array(scalar, { max: 200 }), v.record(v.union(scalar, v.array(scalar, { max: 200 }))));
+const scalar = v.union(
+  v.string({ max: 5000 }),
+  v.number(),
+  v.boolean(),
+  v.literal(null)
+);
+const dataValue = v.union(
+  scalar,
+  v.array(scalar, { max: 200 }),
+  v.record(v.union(scalar, v.array(scalar, { max: 200 })))
+);
 
 export const sessionEventV = v.object({
   /** Stable, monotonically increasing id within the session ("e000042"). */

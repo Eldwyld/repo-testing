@@ -23,8 +23,10 @@ export type TemplatePart = string | TemplateToken;
 const TOKEN = /\{\{|\}\}|\{([A-Za-z][A-Za-z0-9_]*)(?::([^{}]*))?\}/g;
 
 function casingOf(name: string): TemplateToken['casing'] {
-  if (name.length > 1 && name === name.toUpperCase() && /[A-Z]/.test(name)) return 'upper';
-  if (name[0] === name[0].toUpperCase() && /[A-Z]/.test(name[0])) return 'capital';
+  if (name.length > 1 && name === name.toUpperCase() && /[A-Z]/.test(name))
+    return 'upper';
+  if (name[0] === name[0].toUpperCase() && /[A-Z]/.test(name[0]))
+    return 'capital';
   if (name === name.toLowerCase()) return 'lower';
   return 'asis';
 }
@@ -71,7 +73,10 @@ export type RenderResult = {
   tokens: TemplateToken[];
 };
 
-export function renderTemplate(template: string, resolve: TokenResolver): RenderResult {
+export function renderTemplate(
+  template: string,
+  resolve: TokenResolver
+): RenderResult {
   const missing: string[] = [];
   const tokens: TemplateToken[] = [];
   let text = '';
@@ -101,5 +106,7 @@ export function tidy(text: string): string {
 }
 
 export function templateTokens(template: string): TemplateToken[] {
-  return parseTemplate(template).filter((p): p is TemplateToken => typeof p !== 'string');
+  return parseTemplate(template).filter(
+    (p): p is TemplateToken => typeof p !== 'string'
+  );
 }

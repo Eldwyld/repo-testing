@@ -75,11 +75,18 @@ function applyRules(text: string, ctx: NarrationContext): string {
   return out;
 }
 
-export function narrate(template: string, ctx: NarrationContext, depth = 0): NarrationResult {
+export function narrate(
+  template: string,
+  ctx: NarrationContext,
+  depth = 0
+): NarrationResult {
   const person = ctx.person ?? ctx.identity.person;
   const pronouns = ctx.pronouns ?? ctx.identity.pronouns;
   const prohibited = prohibitedFor(ctx);
-  const chain = resolveDictionaries(ctx.identity.dictionaries, ctx.dictionaries).chain;
+  const chain = resolveDictionaries(
+    ctx.identity.dictionaries,
+    ctx.dictionaries
+  ).chain;
   const nestedMissing: string[] = [];
 
   const subjectRef = () => {
@@ -128,7 +135,9 @@ export function narrate(template: string, ctx: NarrationContext, depth = 0): Nar
       case 'object':
         return formOf(ctx.identity.objectNoun, parseForm(token.arg));
       case 'noun':
-        return ctx.identity.presentation.noun || ctx.identity.objectNoun.singular;
+        return (
+          ctx.identity.presentation.noun || ctx.identity.objectNoun.singular
+        );
       case 'narrator':
         return ctx.identity.perspective.narrator;
       case 'be':
@@ -155,7 +164,10 @@ export function narrate(template: string, ctx: NarrationContext, depth = 0): Nar
       case 'dict':
         return token.arg ? dictTerm(token.arg) : undefined;
       case 'pick': {
-        const options = (token.arg ?? '').split('|').map(s => s.trim()).filter(Boolean);
+        const options = (token.arg ?? '')
+          .split('|')
+          .map(s => s.trim())
+          .filter(Boolean);
         return options.length ? ctx.rng.pick(options) : '';
       }
       default: {
@@ -166,14 +178,30 @@ export function narrate(template: string, ctx: NarrationContext, depth = 0): Nar
   };
 
   // {part:genitals.plural@clinical}
-  function partTerm(spec: string, defaultFormSuffix: string): string | undefined {
-    const m = /^([a-z0-9_]+)(?:\.([a-z]+))?(?:@([a-z]+))?$/i.exec(spec.includes('.') || spec.includes('@') ? spec : spec + defaultFormSuffix);
+  function partTerm(
+    spec: string,
+    defaultFormSuffix: string
+  ): string | undefined {
+    const m = /^([a-z0-9_]+)(?:\.([a-z]+))?(?:@([a-z]+))?$/i.exec(
+      spec.includes('.') || spec.includes('@') ? spec : spec + defaultFormSuffix
+    );
     if (!m) return undefined;
     const [, partId, form, register] = m;
-    const part = resolveBodyPart(ctx.anatomy, ctx.identity, partId.toLowerCase());
+    const part = resolveBodyPart(
+      ctx.anatomy,
+      ctx.identity,
+      partId.toLowerCase()
+    );
     if (!part) return undefined;
-    const reg = register && (TERM_REGISTERS as readonly string[]).includes(register) ? (register as TermRegister) : undefined;
-    const forms = pickTerm(part, ctx.rng, { register: reg, style: ctx.style, prohibitedWords: prohibited });
+    const reg =
+      register && (TERM_REGISTERS as readonly string[]).includes(register)
+        ? (register as TermRegister)
+        : undefined;
+    const forms = pickTerm(part, ctx.rng, {
+      register: reg,
+      style: ctx.style,
+      prohibitedWords: prohibited,
+    });
     return forms ? formOf(forms, parseForm(form)) : undefined;
   }
 
@@ -189,7 +217,10 @@ export function narrate(template: string, ctx: NarrationContext, depth = 0): Nar
     });
     const choice = ctx.rng.weighted(entries, e => e.weight);
     if (!choice) return undefined;
-    let text = form === 'plural' ? choice.entry.plural || pluralOf(choice.entry.text) : choice.entry.text;
+    let text =
+      form === 'plural'
+        ? choice.entry.plural || pluralOf(choice.entry.text)
+        : choice.entry.text;
     if (depth < MAX_NESTING && text.includes('{')) {
       const nested = narrate(text, ctx, depth + 1);
       nestedMissing.push(...nested.missing);
@@ -214,11 +245,20 @@ export const PREVIEW_TEMPLATES = [
 
 export type PreviewLine = NarrationResult & { template: string };
 
-export function previewIdentity(ctx: NarrationContext, templates?: string[]): PreviewLine[] {
-  const chain = resolveDictionaries(ctx.identity.dictionaries, ctx.dictionaries).chain;
-  const list =
-    templates ??
-    [...PREVIEW_TEMPLATES, ...categoriesOf(chain).slice(0, 6).map(c => `${c.replace(/_/g, ' ')}: {term:${c}}`)];
+export function previewIdentity(
+  ctx: NarrationContext,
+  templates?: string[]
+): PreviewLine[] {
+  const chain = resolveDictionaries(
+    ctx.identity.dictionaries,
+    ctx.dictionaries
+  ).chain;
+  const list = templates ?? [
+    ...PREVIEW_TEMPLATES,
+    ...categoriesOf(chain)
+      .slice(0, 6)
+      .map(c => `${c.replace(/_/g, ' ')}: {term:${c}}`),
+  ];
   return list.map(template => ({ template, ...narrate(template, ctx) }));
 }
 
@@ -226,29 +266,55 @@ export function previewIdentity(ctx: NarrationContext, templates?: string[]): Pr
  * Lightweight grammatical consistency checks for an identity configuration.
  * These are advisory: the user can override every automatic rule.
  */
-export function lintIdentity(identity: IdentityProfile, anatomy: AnatomyProfile, dictionaries: DictionaryIndex): string[] {
+export function lintIdentity(
+  identity: IdentityProfile,
+  anatomy: AnatomyProfile,
+  dictionaries: DictionaryIndex
+): string[] {
   const warnings: string[] = [];
-  const { missing, cycles, chain } = resolveDictionaries(identity.dictionaries, dictionaries);
-  missing.forEach(m => warnings.push(`Dictionary "${m}" is referenced but does not exist.`));
+  const { missing, cycles, chain } = resolveDictionaries(
+    identity.dictionaries,
+    dictionaries
+  );
+  missing.forEach(m =>
+    warnings.push(`Dictionary "${m}" is referenced but does not exist.`)
+  );
   cycles.forEach(c => warnings.push(`Dictionary inheritance cycle: ${c}`));
   if (chain.length && chain.every(d => d.entries.every(e => !e.enabled)))
-    warnings.push('All dictionary entries are disabled; {term:...} tokens will be left unresolved.');
+    warnings.push(
+      'All dictionary entries are disabled; {term:...} tokens will be left unresolved.'
+    );
   const p = identity.pronouns;
   if (p.subject.toLowerCase() === 'they' && !p.pluralVerbs)
-    warnings.push('"they" pronouns usually take plural verbs ("they are"). Enable plural verb agreement, or ignore if intentional.');
+    warnings.push(
+      '"they" pronouns usually take plural verbs ("they are"). Enable plural verb agreement, or ignore if intentional.'
+    );
   if (identity.person === 'third' && !identity.objectNoun.singular.trim())
     warnings.push('Third-person narration needs an object noun.');
-  if (identity.intensity.min > identity.intensity.max) warnings.push('Intensity min exceeds max.');
+  if (identity.intensity.min > identity.intensity.max)
+    warnings.push('Intensity min exceeds max.');
   for (const part of anatomy.parts) {
-    if (part.enabled && !part.terms.some(t => t.enabled)) warnings.push(`Body part "${part.label}" has no enabled terms.`);
+    if (part.enabled && !part.terms.some(t => t.enabled))
+      warnings.push(`Body part "${part.label}" has no enabled terms.`);
   }
   for (const word of identity.preferredWords) {
-    if (identity.prohibitedWords.some(w => w.toLowerCase() === word.toLowerCase()))
-      warnings.push(`"${word}" is both preferred and prohibited; prohibition wins.`);
+    if (
+      identity.prohibitedWords.some(w => w.toLowerCase() === word.toLowerCase())
+    )
+      warnings.push(
+        `"${word}" is both preferred and prohibited; prohibition wins.`
+      );
   }
-  const guard = [identity.displayName, identity.objectNoun.singular, identity.presentation.noun]
+  const guard = [
+    identity.displayName,
+    identity.objectNoun.singular,
+    identity.presentation.noun,
+  ]
     .flatMap(t => scanText(t))
     .map(f => f.match);
-  if (guard.length) warnings.push(`Excluded (petplay/animal-role) terms present: ${guard.join(', ')}`);
+  if (guard.length)
+    warnings.push(
+      `Excluded (petplay/animal-role) terms present: ${guard.join(', ')}`
+    );
   return warnings;
 }

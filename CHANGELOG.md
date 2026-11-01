@@ -1,4 +1,15 @@
+## Forge (fork of 3.0.1)
+
+- added Forge studio (`/forge`): identity profiles, terminology dictionaries, pronoun/anatomy configuration, narrative style mix, hypnosis-inspired patterns
+- added programmable event engine (JSON + restricted condition DSL, validation, dry-run lab); original dice events ported to data with original odds
+- added event-triggered prompts, randomized compliance checks, transparent accounting
+- added local session logs, autopsy, replay, deterministic re-simulation, ghost overlay, redacted export
+- added safety contract: persistent pause, immediate stop, intensity ceiling, duration limit, scheduled breaks
+- removed pet terminology from classic mode (pup/paws/pet hypno labels, animal icons); grip state key renamed to `hands`
+- fixed route/scene race in SceneBridge that could redirect away from non-game routes
+
 ## 3.0.0 - 2026-10-17
+
 
 ### Added
 
