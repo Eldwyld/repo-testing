@@ -7,14 +7,14 @@ Git history is kept, and the remote is named `upstream`.
 
 Evidence used:
 
-| Evidence | What it established |
-|---|---|
-| `curl https://joi.clynamic.net/` | Deployed page title "JOI.how", description "jack-off-instruction stroke-to-the-beat slideshow", a single Vite bundle. This matches the repository's `index.html`. |
-| Repository source (all files read where relevant) | Stack, architecture, settings, engine, plugins and tests. |
-| `npm ci`, `vitest run`, `tsc` on the unmodified clone | Baseline: 37 test files and 376 tests pass, and the typecheck is clean. |
+| Evidence                                              | What it established                                                                                                                                               |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `curl https://joi.clynamic.net/`                      | Deployed page title "JOI.how", description "jack-off-instruction stroke-to-the-beat slideshow", a single Vite bundle. This matches the repository's `index.html`. |
+| Repository source (all files read where relevant)     | Stack, architecture, settings, engine, plugins and tests.                                                                                                         |
+| `npm ci`, `vitest run`, `tsc` on the unmodified clone | Baseline: 37 test files and 376 tests pass, and the typecheck is clean.                                                                                           |
 
 I did not inspect the deployed site's backend; it has none (see below). I did not run the deployed site
-interactively. Behaviour described below comes from the source code, unless it is marked *inferred*.
+interactively. Behaviour described below comes from the source code, unless it is marked _inferred_.
 
 ## Stack (observed in `package.json` and the source)
 
@@ -72,25 +72,25 @@ hands or **paws**; `$part` = cock, pussy or mound; `$stroke` = stroke or **paw**
 
 ## Feature inventory
 
-| Feature | Status in fork | Notes |
-|---|---|---|
-| Pipe engine, plugins, scheduler, events, effects | **Existing and reusable** | Unchanged. Forge mode is registered as a new upstream `Mode`. |
-| Stroke meter, slideshow, sound cues, toy integration, resume countdown | **Existing and reusable** | Reused as-is on the Forge session page. |
-| e621, local and Walltaker media services | **Existing and reusable** | Unchanged. The media id is `service:id`. |
-| Classic mode (dice, hypno, warm-up, end page) | **Existing but requiring modification** | Kept working. Pet terminology removed (see below). |
-| Seeded RNG | **Existing but requiring modification** | Forge uses its own serialisable mulberry32 `Rng`, so replay is independent of frame saves. |
-| Settings import/export (Trade) | **Existing but requiring modification** | Forge import also accepts classic `settings` JSON and migrates it (`fromJoiSettings`). |
-| `SceneBridge` route↔scene sync | **Existing but requiring modification** | Fixed a race: a stale scene could redirect a route change (found by the end-to-end run). |
-| Gender/body terminology | **Existing but requiring modification** | Replaced in Forge by independent pronoun, presentation and anatomy profiles. |
-| Hard-coded dice events | **Replaced** (in Forge mode) | Data-driven event packs. The eight originals are ported to data with the original odds (`dice` strategy). |
-| Configuration hierarchy, presets, versioning, migrations | **New** | |
-| Identity profiles, dictionaries and narrative styles | **New** | |
-| Event engine, DSL, validation and dry-run | **New** | |
-| Prompts, compliance checks and accounting | **New** | |
-| Session log, autopsy, replay and ghost overlay | **New** | |
-| Pet identities, pet commands and pet-themed presets | **Explicitly excluded** | Enforced by a fixed content guard. |
-| Executing user-supplied JavaScript for *event definitions* | **Explicitly excluded** | Events are data plus a restricted DSL. The upstream JS **plugin installer** remains as an upstream developer feature. Forge never loads event code through it. |
-| Cloud sync, remote sharing, telemetry | **Explicitly excluded** | Not part of the existing architecture. |
+| Feature                                                                | Status in fork                          | Notes                                                                                                                                                          |
+| ---------------------------------------------------------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pipe engine, plugins, scheduler, events, effects                       | **Existing and reusable**               | Unchanged. Forge mode is registered as a new upstream `Mode`.                                                                                                  |
+| Stroke meter, slideshow, sound cues, toy integration, resume countdown | **Existing and reusable**               | Reused as-is on the Forge session page.                                                                                                                        |
+| e621, local and Walltaker media services                               | **Existing and reusable**               | Unchanged. The media id is `service:id`.                                                                                                                       |
+| Classic mode (dice, hypno, warm-up, end page)                          | **Existing but requiring modification** | Kept working. Pet terminology removed (see below).                                                                                                             |
+| Seeded RNG                                                             | **Existing but requiring modification** | Forge uses its own serialisable mulberry32 `Rng`, so replay is independent of frame saves.                                                                     |
+| Settings import/export (Trade)                                         | **Existing but requiring modification** | Forge import also accepts classic `settings` JSON and migrates it (`fromJoiSettings`).                                                                         |
+| `SceneBridge` route↔scene sync                                         | **Existing but requiring modification** | Fixed a race: a stale scene could redirect a route change (found by the end-to-end run).                                                                       |
+| Gender/body terminology                                                | **Existing but requiring modification** | Replaced in Forge by independent pronoun, presentation and anatomy profiles.                                                                                   |
+| Hard-coded dice events                                                 | **Replaced** (in Forge mode)            | Data-driven event packs. The eight originals are ported to data with the original odds (`dice` strategy).                                                      |
+| Configuration hierarchy, presets, versioning, migrations               | **New**                                 |                                                                                                                                                                |
+| Identity profiles, dictionaries and narrative styles                   | **New**                                 |                                                                                                                                                                |
+| Event engine, DSL, validation and dry-run                              | **New**                                 |                                                                                                                                                                |
+| Prompts, compliance checks and accounting                              | **New**                                 |                                                                                                                                                                |
+| Session log, autopsy, replay and ghost overlay                         | **New**                                 |                                                                                                                                                                |
+| Pet identities, pet commands and pet-themed presets                    | **Explicitly excluded**                 | Enforced by a fixed content guard.                                                                                                                             |
+| Executing user-supplied JavaScript for _event definitions_             | **Explicitly excluded**                 | Events are data plus a restricted DSL. The upstream JS **plugin installer** remains as an upstream developer feature. Forge never loads event code through it. |
+| Cloud sync, remote sharing, telemetry                                  | **Explicitly excluded**                 | Not part of the existing architecture.                                                                                                                         |
 
 ### Pet terminology removed from classic mode
 
@@ -98,10 +98,10 @@ hands or **paws**; `$part` = cock, pussy or mound; `$stroke` = stroke or **paw**
 is now "hands". `$stroke` "paw" is now "rub" or "touch". Event descriptions "Paw at…" now read "Stroke at…".
 The hypno labels "Maledom/Femdom Pet" become "Maledom/Femdom", with the pet descriptions rewritten and
 "hump" and "animal" removed. The animal icons (otter, cow, dog, cat) were replaced. The `Paws` grip
-identifiers were renamed to `Hands`; the frame key is `core.dice.hands`, so the grip in an *old classic
-save* defaults to "both".
+identifiers were renamed to `Hands`; the frame key is `core.dice.hands`, so the grip in an _old classic
+save_ defaults to "both".
 
 ## Assumptions and gaps
 
-- *Inferred:* the deployed site runs the same commit, based on a matching title and description. This was not verified byte-for-byte.
+- _Inferred:_ the deployed site runs the same commit, based on a matching title and description. This was not verified byte-for-byte.
 - No user accounts or server exist, so "fork" means repository-level only. No server-side data was involved.

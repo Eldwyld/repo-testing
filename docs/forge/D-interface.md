@@ -2,11 +2,11 @@
 
 The routes are added next to the original ones. Classic mode stays at `/`, `/play` and `/end`.
 
-| Route | Screen(s) covered |
-|---|---|
-| `/forge` | Dashboard and session setup (Setup tab), every settings editor (Settings tab), session history (History tab), import/export and presets (Import & export tab) |
-| `/forge/play` | Active session |
-| `/forge/history/:id` | Session autopsy, replay, accounting and export |
+| Route                | Screen(s) covered                                                                                                                                             |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/forge`             | Dashboard and session setup (Setup tab), every settings editor (Settings tab), session history (History tab), import/export and presets (Import & export tab) |
+| `/forge/play`        | Active session                                                                                                                                                |
+| `/forge/history/:id` | Session autopsy, replay, accounting and export                                                                                                                |
 
 The 15 recommended screens map onto these as follows. The **identity editor**, **dictionary manager**,
 **narrative-style editor**, **event-sequence editor**, **event testing/simulation** (Events › Lab), **media
@@ -42,7 +42,7 @@ SVG step chart). Preset and import/export controls live on the Studio page.
 ## Screens
 
 **Setup (dashboard).** A summary table of the active configuration: identity and person, pronouns, anatomy,
-narrative mix (with conflicts), hypno, durations, pace, odds, event count or *invalid*, prompts, checks,
+narrative mix (with conflicts), hypno, durations, pace, odds, event count or _invalid_, prompts, checks,
 accounting, ceiling, duration limit, breaks and recording. Shortcut buttons lead to identity, tone, pacing and
 safety. Below that sit presets (built-in and saved; Apply, Export, Delete; "Save current as preset"), the ghost
 overlay picker, and **Start session**. With `confirmBeforeStart` on, an inline confirmation states the
@@ -71,17 +71,18 @@ phrases and a phrase table. **Hypno** has enable, intervals, transition frequenc
 (on, weight, repetitions, variation, max length, custom lines), with a no-psychological-claims disclaimer.
 
 **Event-sequence editor.** Tabs:
-- *Events*: selection strategy and limits; a table with enable, weight override and the condition in DSL form.
-- *Packs*: raw JSON per pack, validated live through `compilePack`, with errors naming the event; new pack; copy
+
+- _Events_: selection strategy and limits; a table with enable, weight override and the condition in DSL form.
+- _Packs_: raw JSON per pack, validated live through `compilePack`, with errors naming the event; new pack; copy
   the built-in pack as a template.
-- *Graph*: an edge table plus Mermaid source.
-- *Lab*: an eligibility explainer (intensity, phase and pauses → per-event reason), a dry-run simulator (seconds,
+- _Graph_: an edge table plus Mermaid source.
+- _Lab_: an eligibility explainer (intensity, phase and pauses → per-event reason), a dry-run simulator (seconds,
   seed → timeline) and a condition tester (expression and scope → result and trace).
-- *Reference*: fields, operators, step kinds and limits.
+- _Reference_: fields, operators, step kinds and limits.
 
 **Prompts and checks.** Global enable. For each prompt: triggers, required/blocking, length limits,
 vocabulary mode, perspective, retries, timeout and resume. For each check: kind, text, a responses table (value,
-optional statistic), schedule, phases, condition, timeout, unanswered policy and an *optional* negative-answer
+optional statistic), schedule, phases, condition, timeout, unanswered policy and an _optional_ negative-answer
 event. **Preview 15-minute schedule** runs the scheduler without starting a session.
 
 **Accounting rules.** Enable, opt-in for safety pauses, and rules (types, include/exclude conditions, points,
@@ -112,7 +113,6 @@ validation errors listed. "Import classic settings" reads the original app's `lo
 ## Accessibility
 
 The visual theme follows the Sticker World style bible (Pastel Cloud by default, plus Neon Riot and the original Midnight); see [J-sticker-theme.md](J-sticker-theme.md).
-
 
 Every control is a labelled native element, and tables use header cells. Focus is visible (`:focus-visible`).
 Narration and validation feedback use `aria-live`/`role=status`. Touch targets in the session toolbar are at

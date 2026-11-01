@@ -5,18 +5,18 @@ user-configurable session engine with identity profiles, terminology dictionarie
 styles, a programmable event engine, event-triggered prompts, compliance checks, transparent accounting,
 and full session logging and replay. Everything is local-first: there is no server, sync or telemetry.
 
-| Section | Document |
-|---|---|
-| A. Existing application audit | [A-audit.md](A-audit.md) |
-| B. Architecture and implementation plan | [B-architecture.md](B-architecture.md) |
-| C. Data schemas | [C-schemas.md](C-schemas.md) |
-| D. Interface specification | [D-interface.md](D-interface.md) |
-| E. Working implementation | this page (below) |
-| F. Event engine demonstration | [F-event-engine-demo.md](F-event-engine-demo.md) |
+| Section                                     | Document                                             |
+| ------------------------------------------- | ---------------------------------------------------- |
+| A. Existing application audit               | [A-audit.md](A-audit.md)                             |
+| B. Architecture and implementation plan     | [B-architecture.md](B-architecture.md)               |
+| C. Data schemas                             | [C-schemas.md](C-schemas.md)                         |
+| D. Interface specification                  | [D-interface.md](D-interface.md)                     |
+| E. Working implementation                   | this page (below)                                    |
+| F. Event engine demonstration               | [F-event-engine-demo.md](F-event-engine-demo.md)     |
 | G. Session logging and replay demonstration | [G-logging-replay-demo.md](G-logging-replay-demo.md) |
-| H. Testing strategy | [H-testing.md](H-testing.md) |
-| I. Delivery checklist | [I-delivery-checklist.md](I-delivery-checklist.md) |
-| J. Sticker World UI theme | [J-sticker-theme.md](J-sticker-theme.md) |
+| H. Testing strategy                         | [H-testing.md](H-testing.md)                         |
+| I. Delivery checklist                       | [I-delivery-checklist.md](I-delivery-checklist.md)   |
+| J. Sticker World UI theme                   | [J-sticker-theme.md](J-sticker-theme.md)             |
 
 ## Quick start
 
@@ -51,15 +51,15 @@ No new runtime dependencies were added. Forge uses packages already in upstream 
 
 Each increment was committed separately. Each was type-checked and tested before the next one started.
 
-| # | Commit subject | Files | Responsibility |
-|---|---|---|---|
-| 1 | core validation, seeded RNG, templates, content guard, identity engine | `src/forge/core/*`, `content/guard.ts`, `identity/*`, `tests/forge/identity.test.ts` | Validation with path errors; reproducible randomness; token templates; excluded-term guard; identities, pronouns, anatomy, dictionaries, rendering, preview, lint |
-| 2 | narrative styles, hypnosis-inspired patterns, conditions and DSL | `narrative/*`, `events/conditions.ts`, `events/dsl.ts`, `tests/forge/narrative.test.ts` | Style mix composition and hypno patterns; condition trees and the restricted parser |
-| 3 | programmable event engine | `events/types.ts`, `validate.ts`, `runner.ts`, `builtins.ts`, `tests/forge/events.test.ts` | Schema, load-time validation, pure interpreter, the original dice ported to data |
-| 4 | prompts, checks, accounting, session log/analysis/replay/export, config, storage, runtime | `prompts`, `checks`, `accounting`, `session/*`, `config/*`, `storage`, `runtime/*`, `tests/forge/config.test.ts`, `runtime.test.ts` | Everything after the engine, plus the `SessionRuntime` safety contract |
-| 5 | game-engine bridge, Studio UI, session page, autopsy UI; petplay removal | `src/game/plugins/forge.ts`, `src/forge/ui/*`, `src/app/App.tsx`, classic terminology files | Integration with the upstream engine, all screens, routes, classic cleanup |
-| 6 | docs, SceneBridge fix, browser smoke test | `docs/forge/*`, `src/game/SceneBridge.tsx`, `e2e/forge-smoke.cjs` | Documentation and end-to-end verification |
-| 7 | Sticker World theme (Pastel Cloud / Neon Riot) | `src/forge/ui/theme-sticker.css`, `StickerEmblem.tsx`, `accessibility.theme` | UI restyled to the Sticker Style Bible |
+| #   | Commit subject                                                                            | Files                                                                                                                               | Responsibility                                                                                                                                                    |
+| --- | ----------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | core validation, seeded RNG, templates, content guard, identity engine                    | `src/forge/core/*`, `content/guard.ts`, `identity/*`, `tests/forge/identity.test.ts`                                                | Validation with path errors; reproducible randomness; token templates; excluded-term guard; identities, pronouns, anatomy, dictionaries, rendering, preview, lint |
+| 2   | narrative styles, hypnosis-inspired patterns, conditions and DSL                          | `narrative/*`, `events/conditions.ts`, `events/dsl.ts`, `tests/forge/narrative.test.ts`                                             | Style mix composition and hypno patterns; condition trees and the restricted parser                                                                               |
+| 3   | programmable event engine                                                                 | `events/types.ts`, `validate.ts`, `runner.ts`, `builtins.ts`, `tests/forge/events.test.ts`                                          | Schema, load-time validation, pure interpreter, the original dice ported to data                                                                                  |
+| 4   | prompts, checks, accounting, session log/analysis/replay/export, config, storage, runtime | `prompts`, `checks`, `accounting`, `session/*`, `config/*`, `storage`, `runtime/*`, `tests/forge/config.test.ts`, `runtime.test.ts` | Everything after the engine, plus the `SessionRuntime` safety contract                                                                                            |
+| 5   | game-engine bridge, Studio UI, session page, autopsy UI; petplay removal                  | `src/game/plugins/forge.ts`, `src/forge/ui/*`, `src/app/App.tsx`, classic terminology files                                         | Integration with the upstream engine, all screens, routes, classic cleanup                                                                                        |
+| 6   | docs, SceneBridge fix, browser smoke test                                                 | `docs/forge/*`, `src/game/SceneBridge.tsx`, `e2e/forge-smoke.cjs`                                                                   | Documentation and end-to-end verification                                                                                                                         |
+| 7   | Sticker World theme (Pastel Cloud / Neon Riot)                                            | `src/forge/ui/theme-sticker.css`, `StickerEmblem.tsx`, `accessibility.theme`                                                        | UI restyled to the Sticker Style Bible                                                                                                                            |
 
 The status of every feature (Complete / Partial / Planned) is in the [delivery checklist](I-delivery-checklist.md).
 

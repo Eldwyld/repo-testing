@@ -19,19 +19,31 @@ The same behaviours are asserted in `tests/forge/events.test.ts`.
   "identities": ["scientific_subject", "specimen"],
   "intensity": { "min": 1, "max": 10 },
   "phases": ["active"],
-  "conditions": { "all": [{ "field": "session.intensity", "operator": "greaterThanOrEqual", "value": 2 }] },
+  "conditions": {
+    "all": [
+      {
+        "field": "session.intensity",
+        "operator": "greaterThanOrEqual",
+        "value": 2
+      }
+    ]
+  },
   "cooldownSeconds": 30,
   "noRepeatWithin": 2,
   "steps": [
-    { "do": "narrate", "template": "{Term:research_notes}: {subject} {verb:remain} {term:results} at intensity {intensity}.", "durationSeconds": 6 },
+    {
+      "do": "narrate",
+      "template": "{Term:research_notes}: {subject} {verb:remain} {term:results} at intensity {intensity}.",
+      "durationSeconds": 6
+    },
     { "do": "prompt", "promptId": "record_observation" }
   ]
 }
 ```
 
 The template is resolved through the active identity's dictionaries. With the Scientific subject identity
-(third person, they/them), the runtime renders lines such as *"Addendum: the subject remains consistent with
-hypothesis at intensity 3."* (actual output for seed `s2`) The verb agrees with the noun subject, not with the pronoun.
+(third person, they/them), the runtime renders lines such as _"Addendum: the subject remains consistent with
+hypothesis at intensity 3."_ (actual output for seed `s2`) The verb agrees with the noun subject, not with the pronoun.
 
 ### 2. Conditional event depending on session history (DSL condition)
 
@@ -47,7 +59,11 @@ hypothesis at intensity 3."* (actual output for seed `s2`) The verb agrees with 
   "maxRepeats": 3,
   "steps": [
     { "do": "setPace", "snap": "min" },
-    { "do": "narrate", "template": "A {object} that keeps stopping must learn stillness. Slow, {noun}.", "durationSeconds": 8 },
+    {
+      "do": "narrate",
+      "template": "A {object} that keeps stopping must learn stillness. Slow, {noun}.",
+      "durationSeconds": 8
+    },
     { "do": "wait", "seconds": 15 },
     { "do": "setPace", "random": true }
   ]
@@ -70,7 +86,12 @@ The DSL string is parsed into the JSON condition tree at load time. It is never 
   "maxRepeats": 4,
   "loop": { "times": 3, "until": "session.intensity >= 9" },
   "steps": [
-    { "do": "narrate", "template": "Calibration cycle. {Term:commands}.", "styles": ["mechanical_language"], "durationSeconds": 4 },
+    {
+      "do": "narrate",
+      "template": "Calibration cycle. {Term:commands}.",
+      "styles": ["mechanical_language"],
+      "durationSeconds": 4
+    },
     { "do": "setPace", "multiply": 1.25 },
     { "do": "wait", "seconds": 6 }
   ],
@@ -81,8 +102,15 @@ The DSL string is parsed into the JSON condition tree at load time. It is never 
 with the weighted group it chains into:
 
 ```json
-{ "id": "calibration_outcomes", "name": "Calibration outcomes", "mode": "weighted",
-  "members": [ { "event": "calibration_pass", "weight": 3 }, { "event": "calibration_adjust", "weight": 1 } ] }
+{
+  "id": "calibration_outcomes",
+  "name": "Calibration outcomes",
+  "mode": "weighted",
+  "members": [
+    { "event": "calibration_pass", "weight": 3 },
+    { "event": "calibration_adjust", "weight": 1 }
+  ]
+}
 ```
 
 ## Validation of the default pack
@@ -95,28 +123,28 @@ compilePack(DEFAULT_EVENT_PACK) → {"ok": true, "errors": [], "warnings": []}
 
 Input: intensity 3, phase `active`, identity `scientific_subject`, 2 pauses so far (`explainEligibility`).
 
-| Event | Eligible | Reason |
-|---|---|---|
-| `random_pace` | yes |  |
-| `half_pace` | yes |  |
-| `double_pace` | yes |  |
-| `rising_pace` | yes |  |
-| `scripted_pause` | yes |  |
-| `random_grip` | yes |  |
-| `clean_up` | no | intensity 3.0 outside 7.5–10 |
-| `climax` | no | intensity 3.0 outside 10–10 |
-| `climax_resolve` | no | not selectable (chain-only) |
-| `climax_finish` | no | not selectable (chain-only) |
-| `climax_ruined` | no | not selectable (chain-only) |
-| `climax_denied` | no | not selectable (chain-only) |
-| `climax_cant` | no | not selectable (chain-only) |
-| `ambient_narration` | yes |  |
-| `clinical_observation` | yes |  |
-| `stillness_after_pauses` | yes |  |
-| `automaton_calibration` | no | identity "scientific_subject" not allowed |
-| `calibration_pass` | no | not selectable (chain-only) |
-| `calibration_adjust` | no | not selectable (chain-only) |
-| `oracle_mantra` | no | identity "scientific_subject" not allowed |
+| Event                    | Eligible | Reason                                    |
+| ------------------------ | -------- | ----------------------------------------- |
+| `random_pace`            | yes      |                                           |
+| `half_pace`              | yes      |                                           |
+| `double_pace`            | yes      |                                           |
+| `rising_pace`            | yes      |                                           |
+| `scripted_pause`         | yes      |                                           |
+| `random_grip`            | yes      |                                           |
+| `clean_up`               | no       | intensity 3.0 outside 7.5–10              |
+| `climax`                 | no       | intensity 3.0 outside 10–10               |
+| `climax_resolve`         | no       | not selectable (chain-only)               |
+| `climax_finish`          | no       | not selectable (chain-only)               |
+| `climax_ruined`          | no       | not selectable (chain-only)               |
+| `climax_denied`          | no       | not selectable (chain-only)               |
+| `climax_cant`            | no       | not selectable (chain-only)               |
+| `ambient_narration`      | yes      |                                           |
+| `clinical_observation`   | yes      |                                           |
+| `stillness_after_pauses` | yes      |                                           |
+| `automaton_calibration`  | no       | identity "scientific_subject" not allowed |
+| `calibration_pass`       | no       | not selectable (chain-only)               |
+| `calibration_adjust`     | no       | not selectable (chain-only)               |
+| `oracle_mantra`          | no       | identity "scientific_subject" not allowed |
 
 With the `weighted` strategy, one eligible event is then drawn in proportion to its weight. The `dice`
 strategy instead reproduces the original joi.how odds (weight N = "1 in N", and weight 1 is guaranteed, which
@@ -158,10 +186,7 @@ is how `climax` fires at intensity 10).
       "data": {
         "depth": 0,
         "eventType": "narration",
-        "tags": [
-          "narration",
-          "identity"
-        ]
+        "tags": ["narration", "identity"]
       }
     },
     {

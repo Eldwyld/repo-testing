@@ -52,6 +52,7 @@ has 120 events. The excerpt below shows the first ~40, skipping most of the thro
 ```
 
 Things to note:
+
 - `t` is wall time and `activeMs` is engine time. The 8 s pause separates them from `e000052` on.
 - Each discrete change is recorded verbatim with its previous value. Intensity grows continuously, so it is
   throttled to steps of 0.1 or more, or one entry every 5 s.
@@ -84,13 +85,32 @@ clock can be used: `t` for the timeline chart, `activeMs` for ghost alignment.
 Pace curve (every point):
 
 ```json
-[{"t": 0, "v": 1}, {"t": 51050, "v": 4.58}, {"t": 62100, "v": 3.76}, {"t": 70100, "v": 5}, {"t": 79100, "v": 1.61}]
+[
+  { "t": 0, "v": 1 },
+  { "t": 51050, "v": 4.58 },
+  { "t": 62100, "v": 3.76 },
+  { "t": 70100, "v": 5 },
+  { "t": 79100, "v": 1.61 }
+]
 ```
 
 Intensity curve (every 6th point): the flat stretch between 28 550 and 42 850 ms is the pause.
 
 ```json
-[{"t": 0, "v": 0}, {"t": 6250, "v": 0.52}, {"t": 13750, "v": 1.15}, {"t": 21250, "v": 1.77}, {"t": 28550, "v": 2.38}, {"t": 42850, "v": 2.9}, {"t": 50050, "v": 3.5}, {"t": 57300, "v": 4.11}, {"t": 64800, "v": 4.73}, {"t": 72300, "v": 5.36}, {"t": 79800, "v": 5.98}, {"t": 87300, "v": 6.61}]
+[
+  { "t": 0, "v": 0 },
+  { "t": 6250, "v": 0.52 },
+  { "t": 13750, "v": 1.15 },
+  { "t": 21250, "v": 1.77 },
+  { "t": 28550, "v": 2.38 },
+  { "t": 42850, "v": 2.9 },
+  { "t": 50050, "v": 3.5 },
+  { "t": 57300, "v": 4.11 },
+  { "t": 64800, "v": 4.73 },
+  { "t": 72300, "v": 5.36 },
+  { "t": 79800, "v": 5.98 },
+  { "t": 87300, "v": 6.61 }
+]
 ```
 
 ## Log replay
@@ -107,7 +127,15 @@ engine.
 intensity at that moment plus markers within ±10 s. For this record at 30 s of active time:
 
 ```json
-{"pace": 1, "intensity": 2.48, "markers": [{"offsetMs": -4950, "type": "event_started", "label": "half_pace"}, {"offsetMs": 0, "type": "pause", "label": "pause"}, {"offsetMs": 5350, "type": "check_shown", "label": "check_shown"}]}
+{
+  "pace": 1,
+  "intensity": 2.48,
+  "markers": [
+    { "offsetMs": -4950, "type": "event_started", "label": "half_pace" },
+    { "offsetMs": 0, "type": "pause", "label": "pause" },
+    { "offsetMs": 5350, "type": "check_shown", "label": "check_shown" }
+  ]
+}
 ```
 
 On the session page, the ghost is shown read-only in the status panel. Nothing flows from the ghost into the

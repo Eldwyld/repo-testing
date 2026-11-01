@@ -7,14 +7,21 @@ const fs = require('fs');
 fs.mkdirSync('e2e/screenshots', { recursive: true });
 (async () => {
   const browser = await chromium.launch();
-  const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+  const page = await browser.newPage({
+    viewport: { width: 1280, height: 900 },
+  });
   const errors = [];
   page.on('pageerror', e => errors.push('pageerror: ' + e.message));
-  page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
+  page.on('console', m => {
+    if (m.type() === 'error') errors.push('console: ' + m.text());
+  });
   const base = process.env.BASE_URL || 'http://localhost:4173';
   await page.goto(base + '/forge');
   await page.getByRole('heading', { name: 'JOI Forge Studio' }).waitFor();
-  await page.screenshot({ path: 'e2e/screenshots/1-setup.png', fullPage: true });
+  await page.screenshot({
+    path: 'e2e/screenshots/1-setup.png',
+    fullPage: true,
+  });
   await page.getByRole('tab', { name: 'Settings' }).click();
   const buttons = page.locator('.sidebar nav li button');
   const n = await buttons.count();
@@ -23,11 +30,17 @@ fs.mkdirSync('e2e/screenshots', { recursive: true });
     await buttons.nth(i).click();
     await page.waitForTimeout(150);
     visited.push((await buttons.nth(i).innerText()).split('\n')[0]);
-    if (i === 1) await page.screenshot({ path: 'e2e/screenshots/2-identity.png', fullPage: true });
+    if (i === 1)
+      await page.screenshot({
+        path: 'e2e/screenshots/2-identity.png',
+        fullPage: true,
+      });
   }
   console.log('visited categories:', visited.length, visited.join(' | '));
   // Event lab
-  await page.locator('.sidebar nav li button', { hasText: 'Events & sequences' }).click();
+  await page
+    .locator('.sidebar nav li button', { hasText: 'Events & sequences' })
+    .click();
   await page.getByRole('tab', { name: 'Lab' }).click();
   await page.getByRole('button', { name: 'Run' }).click();
   await page.waitForTimeout(500);
@@ -35,14 +48,28 @@ fs.mkdirSync('e2e/screenshots', { recursive: true });
   console.log('dry-run timeline lines:', tl);
   await page.screenshot({ path: 'e2e/screenshots/3-lab.png', fullPage: true });
   // make an edit -> unsaved indicator, then search
-  await page.locator('.sidebar nav li button', { hasText: 'Pacing & intensity' }).click();
+  await page
+    .locator('.sidebar nav li button', { hasText: 'Pacing & intensity' })
+    .click();
   await page.getByLabel('Maximum pace (/s)').fill('6');
-  console.log('unsaved indicator:', await page.getByText(/unsaved/).first().innerText());
+  console.log(
+    'unsaved indicator:',
+    await page
+      .getByText(/unsaved/)
+      .first()
+      .innerText()
+  );
   await page.getByRole('button', { name: 'Reset category' }).click();
-  console.log('after reset unsaved count visible:', await page.getByText(/\d+ unsaved/).count());
+  console.log(
+    'after reset unsaved count visible:',
+    await page.getByText(/\d+ unsaved/).count()
+  );
   await page.getByLabel('Search settings').fill('pronoun');
   await page.locator('[role=listbox] button').first().click();
-  console.log('search jumped to:', await page.locator('.main .card header h2').first().innerText());
+  console.log(
+    'search jumped to:',
+    await page.locator('.main .card header h2').first().innerText()
+  );
   // Start a session
   await page.getByRole('tab', { name: 'Setup' }).click();
   await page.getByRole('button', { name: 'Start session' }).click();
@@ -54,19 +81,38 @@ fs.mkdirSync('e2e/screenshots', { recursive: true });
   await page.screenshot({ path: 'e2e/screenshots/4-session.png' });
   await page.getByRole('button', { name: 'Pause', exact: true }).click();
   await page.waitForTimeout(800);
-  console.log('badge after pause:', await page.locator('.forge-status .badge').innerText());
+  console.log(
+    'badge after pause:',
+    await page.locator('.forge-status .badge').innerText()
+  );
   await page.getByRole('button', { name: 'Resume' }).click();
   await page.waitForTimeout(5000);
-  console.log('badge after resume:', await page.locator('.forge-status .badge').innerText());
+  console.log(
+    'badge after resume:',
+    await page.locator('.forge-status .badge').innerText()
+  );
   await page.getByRole('button', { name: 'Stop session' }).click();
   await page.waitForURL('**/forge/history/**', { timeout: 5000 });
   await page.getByRole('heading', { name: 'Session autopsy' }).waitFor();
   await page.waitForTimeout(500);
-  console.log('autopsy summary:', (await page.locator('.card').first().innerText()).slice(0, 400));
+  console.log(
+    'autopsy summary:',
+    (await page.locator('.card').first().innerText()).slice(0, 400)
+  );
   await page.getByRole('button', { name: 'Re-simulate and compare' }).click();
   await page.waitForTimeout(500);
-  console.log('verify:', await page.locator('[role=status]').filter({ hasText: /Re-simulation|Diverged|Not possible/ }).first().innerText());
-  await page.screenshot({ path: 'e2e/screenshots/5-autopsy.png', fullPage: true });
+  console.log(
+    'verify:',
+    await page
+      .locator('[role=status]')
+      .filter({ hasText: /Re-simulation|Diverged|Not possible/ })
+      .first()
+      .innerText()
+  );
+  await page.screenshot({
+    path: 'e2e/screenshots/5-autopsy.png',
+    fullPage: true,
+  });
   // history
   await page.goto(base + '/forge');
   await page.getByRole('tab', { name: 'History' }).click();
@@ -77,4 +123,7 @@ fs.mkdirSync('e2e/screenshots', { recursive: true });
   console.log('classic home title:', await page.title());
   console.log('ERRORS:', errors.length ? errors.join('\n') : 'none');
   await browser.close();
-})().catch(e => { console.error('E2E FAILED', e); process.exit(1); });
+})().catch(e => {
+  console.error('E2E FAILED', e);
+  process.exit(1);
+});

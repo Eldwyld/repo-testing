@@ -1,17 +1,17 @@
 # C. Data schemas
 
-**Source of truth:** the validators in code. TypeScript types are *inferred* from them (`Infer<typeof xV>`),
+**Source of truth:** the validators in code. TypeScript types are _inferred_ from them (`Infer<typeof xV>`),
 so the types and the runtime validation cannot drift apart. The interfaces below are a readable summary;
 `?` marks optional fields, and `= x` is the default the validator fills in when a field is missing.
 
 All top-level documents carry `kind` and `schemaVersion`:
 
-| Document | `kind` | Current version | Validator | Migration |
-|---|---|---|---|---|
-| Configuration | `forge.config` | 2 | `forgeConfigV` (`config/schema.ts`) | `migrateConfig` (v1→v2), `fromJoiSettings` (classic) |
-| Preset | `forge.preset` | 1 | `presetV` (`config/presets.ts`) | newer version → rejected |
-| Event pack | `forge.eventPack` | 1 | `eventPackV` + `compilePack` (`events/*`) | newer version → rejected |
-| Session record | `forge.session` | 1 | `sessionRecordV` (`session/types.ts`) | newer version → rejected |
+| Document       | `kind`            | Current version | Validator                                 | Migration                                            |
+| -------------- | ----------------- | --------------- | ----------------------------------------- | ---------------------------------------------------- |
+| Configuration  | `forge.config`    | 2               | `forgeConfigV` (`config/schema.ts`)       | `migrateConfig` (v1→v2), `fromJoiSettings` (classic) |
+| Preset         | `forge.preset`    | 1               | `presetV` (`config/presets.ts`)           | newer version → rejected                             |
+| Event pack     | `forge.eventPack` | 1               | `eventPackV` + `compilePack` (`events/*`) | newer version → rejected                             |
+| Session record | `forge.session`   | 1               | `sessionRecordV` (`session/types.ts`)     | newer version → rejected                             |
 
 Validation rules that apply everywhere:
 
@@ -86,7 +86,7 @@ interface IdentityProfile {
 `{narrator}` `{action}` `{actioning}` `{hands}` `{part:<id>[.form][@register]}` `{term:<category>[.plural]}`
 `{pick:a|b|c}`, plus variables such as `{pace}` `{intensity}` `{phase}` `{grip}` `{count}`. Capitalised
 (`{Subject}`) and upper-case (`{HANDS}`) spellings change the casing of the result. Verb agreement follows the
-most recent subject token, so "The subject *is* … They *are* …" both come out right.
+most recent subject token, so "The subject _is_ … They _are_ …" both come out right.
 
 ## Narrative styles (`narrative/types.ts`)
 
@@ -114,16 +114,30 @@ interface HypnoConfig {
 ## Conditions (`events/conditions.ts`, `events/dsl.ts`)
 
 ```ts
-type Operator = 'equals' | 'notEquals' | 'greaterThan' | 'greaterThanOrEqual' | 'lessThan' | 'lessThanOrEqual'
-              | 'in' | 'notIn' | 'contains' | 'notContains' | 'exists' | 'notExists' | 'between';
+type Operator =
+  | 'equals'
+  | 'notEquals'
+  | 'greaterThan'
+  | 'greaterThanOrEqual'
+  | 'lessThan'
+  | 'lessThanOrEqual'
+  | 'in'
+  | 'notIn'
+  | 'contains'
+  | 'notContains'
+  | 'exists'
+  | 'notExists'
+  | 'between';
 type Condition =
-  | { all: Condition[] } | { any: Condition[] } | { not: Condition }
+  | { all: Condition[] }
+  | { any: Condition[] }
+  | { not: Condition }
   | { field: string; operator: Operator; value?: Scalar | Scalar[] };
 // Value rules: in/notIn need an array; between needs [min,max] with min ≤ max; greater/less need a number.
 // Limits: nesting depth ≤ 12 and ≤ 200 nodes. Unknown field roots produce a warning and evaluate as missing.
 ```
 
-Field roots: `session.*` (intensity, pace, phase, elapsedSeconds, pauses, checks.*, prompts.*), `identity.*`,
+Field roots: `session.*` (intensity, pace, phase, elapsedSeconds, pauses, checks._, prompts._), `identity.*`,
 `styles.active`, `media.tags`, `history.*` (last, recent, count.<id>, total), `stats.*`, `vars.*`,
 `answers.<checkId|promptId>` and `event.iteration`. Anywhere a condition is accepted, it may be written as a
 DSL string, e.g. `session.intensity >= 4 and not (history.last == "pause")`. The string is parsed into the
@@ -247,21 +261,65 @@ interface SessionRecord {
 
 ```ts
 interface ForgeConfig {
-  kind: 'forge.config'; schemaVersion: 2;
-  session: { identityId; anatomyId; pronounsOverride: string | null; personOverride: GrammaticalPerson | null;
-             styleMix: StyleMixEntry[]; durationSeconds; warmupSeconds; paceMin; paceMax; startIntensity;
-             climaxChance; ruinChance; seed: string | null; narrationEnabled };
-  identities: IdentityProfile[]; anatomy: AnatomyProfile[]; pronouns: PronounSet[];   // user items / overrides
-  dictionaries: Dictionary[]; styles: NarrativeStyle[]; hypno: HypnoConfig;
-  events: { builtinEnabled; packs: EventPack[]; disabledEventIds: string[]; weightOverrides: Record<id, number>; selection: SelectionConfig };
+  kind: 'forge.config';
+  schemaVersion: 2;
+  session: {
+    identityId;
+    anatomyId;
+    pronounsOverride: string | null;
+    personOverride: GrammaticalPerson | null;
+    styleMix: StyleMixEntry[];
+    durationSeconds;
+    warmupSeconds;
+    paceMin;
+    paceMax;
+    startIntensity;
+    climaxChance;
+    ruinChance;
+    seed: string | null;
+    narrationEnabled;
+  };
+  identities: IdentityProfile[];
+  anatomy: AnatomyProfile[];
+  pronouns: PronounSet[]; // user items / overrides
+  dictionaries: Dictionary[];
+  styles: NarrativeStyle[];
+  hypno: HypnoConfig;
+  events: {
+    builtinEnabled;
+    packs: EventPack[];
+    disabledEventIds: string[];
+    weightOverrides: Record<id, number>;
+    selection: SelectionConfig;
+  };
   prompts: { enabled; templates: PromptTemplate[] };
   checks: { enabled; globalMinGapSeconds; items: ComplianceCheck[] };
   accounting: AccountingConfig;
-  media: { tags: Record<mediaId, string[]>; associations: { tag; events: string[]; styles: string[]; weightMultiplier }[] };
+  media: {
+    tags: Record<mediaId, string[]>;
+    associations: {
+      tag;
+      events: string[];
+      styles: string[];
+      weightMultiplier;
+    }[];
+  };
   logging: { enabled; recordNarrationText; recordPromptText; embedConfig };
-  safety: { intensityCeiling; maxDurationMinutes; breaks: { enabled; everyMinutes; lengthSeconds };
-            confirmBeforeStart; extraProhibitedWords: string[]; excludedPhrases: string[]; showRecordingIndicator };
-  accessibility: { reducedMotion: 'system' | 'on' | 'off'; fontScale; highContrast; readingTimeMultiplier };
+  safety: {
+    intensityCeiling;
+    maxDurationMinutes;
+    breaks: { enabled; everyMinutes; lengthSeconds };
+    confirmBeforeStart;
+    extraProhibitedWords: string[];
+    excludedPhrases: string[];
+    showRecordingIndicator;
+  };
+  accessibility: {
+    reducedMotion: 'system' | 'on' | 'off';
+    fontScale;
+    highContrast;
+    readingTimeMultiplier;
+  };
 }
 ```
 
