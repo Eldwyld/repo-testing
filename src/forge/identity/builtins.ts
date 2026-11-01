@@ -366,10 +366,8 @@ export const BUILTIN_IDENTITIES: IdentityProfile[] = [
   }),
 ];
 
+// Every built-in identity layers the shared objectification vocabulary under
+// its own dictionary (explicit, editable attachment — not implicit inheritance).
 for (const ident of BUILTIN_IDENTITIES) {
-  if (!['scientific_subject', 'specimen', 'hostage', 'oracle', 'deity'].includes(ident.category)) {
-    ident.dictionaries = [ident.category, 'objectification_core'].filter(
-      (d, i, arr) => arr.indexOf(d) === i
-    );
-  }
+  ident.dictionaries = [...new Set([...ident.dictionaries, 'objectification_core'])];
 }
