@@ -2,9 +2,16 @@
 # Build JOI Forge and serve it from Google Colab (or any remote Linux box)
 # through a public localtunnel URL.
 #
-# Usage, in ONE Colab cell:
-#   !git clone -b joi-forge https://github.com/Eldwyld/repo-testing /content/joi-forge-fork
-#   !bash /content/joi-forge-fork/scripts/colab-preview.sh
+# Usage, as ONE Colab cell (%%bash must be the first line; safe to re-run):
+#   %%bash
+#   set -e
+#   DIR=/content/joi-forge-fork
+#   if [ -d "$DIR/.git" ]; then
+#     git -C "$DIR" pull --ff-only
+#   else
+#     git clone -b joi-forge https://github.com/Eldwyld/repo-testing "$DIR"
+#   fi
+#   bash "$DIR/scripts/colab-preview.sh"
 #
 # Options (environment variables):
 #   PORT=5224        port for the preview server
@@ -24,7 +31,7 @@ say() { printf '\n== %s\n' "$*"; }
 say "Checking this is the Forge fork"
 if [ ! -d src/forge ] || [ ! -f src/forge/ui/StudioPage.tsx ]; then
   echo "ERROR: $(pwd) has no src/forge, so it is NOT the Forge fork (probably the original joi.how)."
-  echo "Clone the fork with:"
+  echo "Use the %%bash cell in docs/forge/colab.md, which clones the fork into /content/joi-forge-fork:"
   echo "  git clone -b joi-forge https://github.com/Eldwyld/repo-testing /content/joi-forge-fork"
   exit 1
 fi

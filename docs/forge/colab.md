@@ -7,11 +7,20 @@ with `502 Bad Gateway`, which leaves a blank page.
 
 ## One cell
 
-Run this in a **code cell**. The `!` prefix sends each line to the shell, not to Python.
+Paste this into a **code cell**. `%%bash` must be the very first line: it runs the whole cell as a shell
+script instead of Python. The cell is safe to re-run; it clones the fork the first time and pulls updates
+after that.
 
 ```
-!git clone -b joi-forge https://github.com/Eldwyld/repo-testing /content/joi-forge-fork
-!bash /content/joi-forge-fork/scripts/colab-preview.sh
+%%bash
+set -e
+DIR=/content/joi-forge-fork
+if [ -d "$DIR/.git" ]; then
+  git -C "$DIR" pull --ff-only
+else
+  git clone -b joi-forge https://github.com/Eldwyld/repo-testing "$DIR"
+fi
+bash "$DIR/scripts/colab-preview.sh"
 ```
 
 When it finishes, it prints two lines:
@@ -35,11 +44,14 @@ line above, which uses a new folder, `/content/joi-forge-fork`.
 
 ## Notes
 
-- **Re-running:** run the cell again. A clone into an existing folder fails, so update it first with
-  `!git -C /content/joi-forge-fork pull` and then run only the `bash` line.
+- **Re-running / updating:** run the same cell again. It pulls the latest `joi-forge` commit, rebuilds, and
+  restarts the server and tunnel (the tunnel URL changes each time).
+- **`!` instead of `%%bash`:** single lines also work with a `!` prefix (e.g.
+  `!bash /content/joi-forge-fork/scripts/colab-preview.sh`), but multi-line shell logic needs `%%bash`.
 - **Public link:** the tunnel URL is public while the Colab runtime is alive. Settings and session logs are
   stored in _your browser_, not on the Colab machine.
 - **Other hosts:** the preview server only accepts unknown hostnames when started with
   `FORGE_ALLOWED_HOSTS=all` (the script does this) or a comma-separated list such as
   `FORGE_ALLOWED_HOSTS=.loca.lt`. Normal `npm run dev` stays limited to localhost.
-- **No tunnel:** `TUNNEL=none bash scripts/colab-preview.sh` builds and serves locally only.
+- **No tunnel:** change the last line to `TUNNEL=none bash "$DIR/scripts/colab-preview.sh"` to build and
+  serve locally only.

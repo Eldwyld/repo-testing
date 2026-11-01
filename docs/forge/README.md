@@ -20,7 +20,8 @@ and full session logging and replay. Everything is local-first: there is no serv
 
 ## Quick start
 
-**In Google Colab:** see [colab.md](colab.md). One cell builds the app and prints a public `/forge` link.
+**In Google Colab:** see [colab.md](colab.md). One `%%bash` cell builds the app and prints a public `/forge`
+link.
 
 **On your own computer:**
 
