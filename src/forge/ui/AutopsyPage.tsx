@@ -32,6 +32,7 @@ import { APP_VERSION, ENGINE_VERSION } from '../runtime/runtime';
 import { Card, MultiSelect, RangeField, StepChart, Toggle } from './components';
 import { download } from './files';
 import { ForgeConfigProvider } from './ConfigContext';
+import { AgeGate } from './AgeGate';
 import { rootClass, rootStyle, useForgeConfig } from './forgeConfigState';
 import './forge.css';
 import './theme-sticker.css';
@@ -834,7 +835,9 @@ function Shell() {
 }
 
 export const AutopsyPage = () => (
-  <ForgeConfigProvider>
-    <Shell />
-  </ForgeConfigProvider>
+  <AgeGate>
+    <ForgeConfigProvider>
+      <Shell />
+    </ForgeConfigProvider>
+  </AgeGate>
 );

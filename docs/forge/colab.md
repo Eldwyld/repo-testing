@@ -21,7 +21,7 @@ Open:            https://<random>.loca.lt/forge
 Tunnel password: <an IP address>
 ```
 
-Open that link. localtunnel first shows a reminder page; paste the tunnel password there.
+Open that link. localtunnel first shows a reminder page; paste the tunnel password there. The app then asks you to confirm you are 18 or older (the original app's gate, also applied to Forge pages).
 
 ## Check you are on the fork
 

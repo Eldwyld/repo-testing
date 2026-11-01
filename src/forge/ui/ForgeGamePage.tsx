@@ -20,6 +20,7 @@ import { ghostAt } from '../session/replay';
 import { formatMs } from '../session/analysis';
 import { activeSession } from './activeSession';
 import { ForgeConfigProvider } from './ConfigContext';
+import { AgeGate } from './AgeGate';
 import { rootClass, rootStyle, useForgeConfig } from './forgeConfigState';
 import './forge.css';
 import './theme-sticker.css';
@@ -382,7 +383,9 @@ function Session() {
 }
 
 export const ForgeGamePage = () => (
-  <ForgeConfigProvider>
-    <Session />
-  </ForgeConfigProvider>
+  <AgeGate>
+    <ForgeConfigProvider>
+      <Session />
+    </ForgeConfigProvider>
+  </AgeGate>
 );

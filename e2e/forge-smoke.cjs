@@ -16,8 +16,22 @@ fs.mkdirSync('e2e/screenshots', { recursive: true });
     if (m.type() === 'error') errors.push('console: ' + m.text());
   });
   const base = process.env.BASE_URL || 'http://localhost:4173';
+  // A fresh visitor opening /forge directly must get the age gate first.
+  {
+    const ctx = await browser.newContext();
+    const fresh = await ctx.newPage();
+    await fresh.goto(base + '/forge');
+    await fresh.getByRole('button', { name: 'I am an adult' }).waitFor();
+    const studioVisible = await fresh
+      .getByRole('heading', { name: 'JOI Forge Studio' })
+      .count();
+    console.log('direct /forge shows age gate first:', studioVisible === 0);
+    await ctx.close();
+  }
   // The classic home page must lead into the Forge studio.
   await page.goto(base + '/');
+  // First visit: the 18+ confirmation must appear before anything else.
+  await page.getByRole('button', { name: 'I am an adult' }).click();
   await page.getByRole('link', { name: /Open JOI Forge Studio/ }).click();
   await page.waitForURL('**/forge');
   console.log('home -> forge link: ok');

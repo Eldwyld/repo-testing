@@ -22,6 +22,7 @@ import { CategoryEditor } from './editors';
 import { Card, Select } from './components';
 import { download, readFile } from './files';
 import { ForgeConfigProvider } from './ConfigContext';
+import { AgeGate } from './AgeGate';
 import { rootClass, rootStyle, useForgeConfig } from './forgeConfigState';
 import './forge.css';
 import './theme-sticker.css';
@@ -776,7 +777,9 @@ function Studio() {
 }
 
 export const StudioPage = () => (
-  <ForgeConfigProvider>
-    <Studio />
-  </ForgeConfigProvider>
+  <AgeGate>
+    <ForgeConfigProvider>
+      <Studio />
+    </ForgeConfigProvider>
+  </AgeGate>
 );
