@@ -26,6 +26,7 @@ import { rootClass, rootStyle, useForgeConfig } from './forgeConfigState';
 import './forge.css';
 import './theme-sticker.css';
 import { StickerEmblem } from './StickerEmblem';
+import { FORGE_BUILD } from '../buildInfo';
 
 type Tab = 'setup' | 'settings' | 'history' | 'io';
 
@@ -725,6 +726,9 @@ function Studio() {
           <Link className='btn' to='/'>
             Classic mode
           </Link>
+          <span className='muted' title='Commit this build was made from'>
+            build {FORGE_BUILD}
+          </span>
         </div>
         {saveError && (
           <ul className='diag error' role='alert'>

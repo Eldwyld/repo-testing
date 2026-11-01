@@ -16,6 +16,11 @@ fs.mkdirSync('e2e/screenshots', { recursive: true });
     if (m.type() === 'error') errors.push('console: ' + m.text());
   });
   const base = process.env.BASE_URL || 'http://localhost:4173';
+  // The classic home page must lead into the Forge studio.
+  await page.goto(base + '/');
+  await page.getByRole('link', { name: /Open JOI Forge Studio/ }).click();
+  await page.waitForURL('**/forge');
+  console.log('home -> forge link: ok');
   await page.goto(base + '/forge');
   await page.getByRole('heading', { name: 'JOI Forge Studio' }).waitFor();
   await page.screenshot({

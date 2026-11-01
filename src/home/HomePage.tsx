@@ -3,6 +3,7 @@ import {
   HomeTitle,
   ReleaseNotes,
   AgeWarning,
+  ForgeEntry,
   Introduction,
   Instructions,
   VersionDisplay,
@@ -35,6 +36,7 @@ export const HomePage = () => {
       <StyledHomePage>
         <HomeTitle />
         <AgeWarning />
+        <ForgeEntry />
         <Introduction />
         <SettingsSection />
         <VersionDisplay />

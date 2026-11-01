@@ -1,5 +1,6 @@
 export * from './AgeWarning';
 export * from './AppTitle';
+export * from './ForgeEntry';
 export * from './Instructions';
 export * from './Introduction';
 export * from './ReleaseNotes';
