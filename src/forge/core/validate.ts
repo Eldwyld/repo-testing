@@ -32,6 +32,8 @@ export type ObjectOut<S> = Simplify<
   { [K in Exclude<keyof S, OptionalKeys<S>>]: Infer<S[K]> } & { [K in OptionalKeys<S>]?: Infer<S[K]> }
 >;
 
+const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
 const join = (path: string, key: string | number) =>
   typeof key === 'number' ? `${path}[${key}]` : path ? `${path}.${key}` : key;
 
@@ -141,7 +143,13 @@ export const v = {
         return {};
       }
       const out: Record<string, T> = {};
-      for (const [k, x] of Object.entries(input)) out[k] = value.check(x, join(path, k), issues);
+      for (const [k, x] of Object.entries(input)) {
+        if (UNSAFE_KEYS.has(k)) {
+          issues.push({ path: join(path, k), message: 'reserved key is not allowed' });
+          continue;
+        }
+        out[k] = value.check(x, join(path, k), issues);
+      }
       return out;
     });
   },
