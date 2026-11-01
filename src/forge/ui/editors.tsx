@@ -1638,6 +1638,19 @@ function AccessibilityEditor({ config, update }: EditorProps) {
   return (
     <div className='grid'>
       <Select
+        label='Theme'
+        value={a.theme}
+        options={
+          [
+            { value: 'pastel-cloud', label: 'Sticker · Pastel Cloud' },
+            { value: 'neon-riot', label: 'Sticker · Neon Riot' },
+            { value: 'midnight', label: 'Midnight (original dark)' },
+          ] as const
+        }
+        onChange={x => set('theme', x)}
+        help='Colours, fonts and outlines live in src/forge/ui/theme-sticker.css'
+      />
+      <Select
         label='Reduced motion'
         value={a.reducedMotion}
         options={

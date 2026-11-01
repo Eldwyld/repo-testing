@@ -3,11 +3,11 @@
 | Layer | Tool | Location | Count |
 |---|---|---|---|
 | Upstream engine and classic plugins (unchanged) | Vitest + jsdom | `tests/engine`, `tests/game`, `tests/local` | 376 tests, all green before and after the fork |
-| Forge unit tests (deterministic logic) | Vitest | `tests/forge/identity`, `narrative`, `events`, `config` | 86 |
+| Forge unit tests (deterministic logic) | Vitest | `tests/forge/identity`, `narrative`, `events`, `config` | 89 |
 | Forge integration tests (full runtime workflows, storage) | Vitest + fake-indexeddb | `tests/forge/runtime.test.ts` | 30 |
 | Browser smoke test (built app) | Playwright + Chromium | `e2e/forge-smoke.cjs` | 1 scripted run |
 
-Total: **42 test files, 492 tests, all passing.** In addition, `npm run lint` (`--max-warnings 0`), `tsc` and
+Total: **42 test files, 495 tests, all passing.** In addition, `npm run lint` (`--max-warnings 0`), `tsc` and
 `vite build` all pass.
 
 ## Coverage of the required areas

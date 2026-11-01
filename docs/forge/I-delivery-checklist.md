@@ -36,6 +36,7 @@ Items whose only evidence is code review are marked as such.
 | Integration with upstream engine (meter, slideshow, cues, toys) | Partial | `game/plugins/forge.ts` | e2e with no images loaded; tests do not cover the bridge plugin | Not exercised with real media or a toy; the media-tag workflow needs manual id entry |
 | SceneBridge race fix | Complete | `game/SceneBridge.tsx` | e2e (stop → autopsy no longer bounces to `/play`) | — |
 | Studio UI: dashboard, setup, all editors, history, import/export | Complete | `forge/ui/*` | e2e visits all 20 categories with no console errors | No component-level tests |
+| Sticker World theme (Pastel Cloud, Neon Riot; Midnight kept) | Complete | `ui/theme-sticker.css`, `ui/StickerEmblem.tsx`, `config/schema.ts` | config tests (default, old-config fill-in, invalid theme); browser screenshots of studio, session and autopsy in both modes | Heading font is a system stack (no web font download); upstream meter and slideshow keep their own styling |
 | Accessibility (labels, focus, live regions, reduced motion, text scale, contrast, 44 px controls) | Partial | `ui/forge.css`, components | Code review; e2e by role and label queries | No screen-reader or contrast audit performed |
 | Documentation (A–I) | Complete | `docs/forge/` | — | — |
 | Mobile layout | Partial | `ui/forge.css` (responsive grid) | Not tested on a mobile viewport | Manual check on small screens |

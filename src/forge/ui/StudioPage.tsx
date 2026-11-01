@@ -24,6 +24,8 @@ import { download, readFile } from './files';
 import { ForgeConfigProvider } from './ConfigContext';
 import { rootClass, rootStyle, useForgeConfig } from './forgeConfigState';
 import './forge.css';
+import './theme-sticker.css';
+import { StickerEmblem } from './StickerEmblem';
 
 type Tab = 'setup' | 'settings' | 'history' | 'io';
 
@@ -656,7 +658,11 @@ function Studio() {
     <div className={rootClass(draft)} style={rootStyle(draft)}>
       <div className='main'>
         <div className='topbar'>
-          <h1>JOI Forge Studio</h1>
+          <StickerEmblem />
+          <h1 className='scribble-under'>JOI Forge Studio</h1>
+          <span className='tape-note' aria-hidden='true'>
+            keep it. it knows something.
+          </span>
           <div
             style={{
               position: 'relative',

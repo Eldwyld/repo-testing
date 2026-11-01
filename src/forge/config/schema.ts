@@ -30,6 +30,10 @@ import { DEFAULT_PROMPTS, promptTemplateV } from '../prompts/prompts';
 
 export const CONFIG_SCHEMA_VERSION = 2;
 
+/** Sticker World palette modes (Pastel Cloud, Neon Riot) or the original dark UI. */
+export const UI_THEMES = ['pastel-cloud', 'neon-riot', 'midnight'] as const;
+export type UiTheme = (typeof UI_THEMES)[number];
+
 export const sessionSettingsV = v.object({
   identityId: v.string().default('doll'),
   anatomyId: v.string().default('anatomy.penis'),
@@ -150,6 +154,8 @@ export const forgeConfigV = v.object({
     showRecordingIndicator: true,
   }),
   accessibility: v.object({
+    /** Visual theme. Older configs without this field get the default. */
+    theme: v.enum(UI_THEMES).default('pastel-cloud'),
     reducedMotion: v.enum(['system', 'on', 'off'] as const).default('system'),
     fontScale: v.number({ min: 0.75, max: 2 }).default(1),
     highContrast: v.boolean().default(false),

@@ -1,0 +1,542 @@
+/*
+ * Sticker World theme (Crayon Core + Dry-Flow Material Edition, v2.0).
+ *
+ * Applies when the Forge root has `.sticker` plus a palette mode class:
+ *   .theme-pastel-cloud  — soft, dreamy, collectible (default)
+ *   .theme-neon-riot     — bold, electric, flat neon on midnight paper
+ *
+ * Every colour, outline, radius and texture is a token in the two blocks
+ * below. Change the hex values there to retune the whole UI.
+ *
+ * How the style bible maps to UI:
+ *  - Die-cut border  : ink contour (border) + thick warm-milk ring (box-shadow
+ *                      spread) + faint sticker edge. Never a thin keyline.
+ *  - Wobbly ink      : asymmetric "hand-cut" radii that vary by position.
+ *  - Puffy shapes    : pills and pillowy cards; no sharp corners.
+ *  - Printed surface : crayon grain (SVG noise) + halftone shadow corner.
+ *  - Crayon Core     : ONE dominant interruption (off-register print echo on
+ *                      cards/buttons/headings) + two support marks (scribbled
+ *                      title underline, a taped margin note). Nothing else,
+ *                      so the controls stay readable (chaos budget ≈ 10%).
+ *  - Colour          : flat fills, dark grape ink, pure black avoided, no glow.
+ *  - Liquid drips    : none. Nothing in this UI is liquid (wetness control).
+ */
+
+.forge.sticker {
+  /* ---- Pastel Cloud palette (bible §5) ---------------------------------- */
+  --milk: #fff9ef; /* paper / die-cut border */
+  --ink: #2b1b3e; /* grape ink */
+  --pink: #f6a8c7; /* dusty bubblegum */
+  --purple: #bfa7ec; /* cloud lavender */
+  --blue: #a9cdfb; /* powder blue */
+  --green: #aad6bd; /* sage mint */
+  --yellow: #ffe6a6; /* butter */
+  --orange: #ffb58f; /* peach */
+  --red: #ff8a8f; /* stop button: warm red pulled toward peach */
+  --shadow-partner: #8e7196; /* dusty mauve */
+
+  /* ---- Semantic roles --------------------------------------------------- */
+  --page: #f4ecff; /* pale lavender page (55–70% pale) */
+  --surface: var(--milk);
+  --surface-alt: #fdf3ff;
+  --text: var(--ink);
+  --muted-text: #66506f; /* mauve darkened for AA contrast on milk */
+  --echo-1: var(--pink); /* off-register print echo */
+  --echo-2: var(--blue);
+  --button: var(--purple);
+  --button-text: var(--ink);
+  --primary: var(--pink);
+  --primary-text: var(--ink);
+  --selected: var(--yellow);
+  --danger: var(--red);
+  --focus: #7a2bff;
+  --field: #ffffff;
+  --halftone: rgba(43, 27, 62, 0.22);
+  --chart-1: #7a2bff;
+  --chart-2: #e0408f;
+
+  /* ---- Shape & line tokens ---------------------------------------------- */
+  --line: 2.5px; /* outer ink contour (heaviest line) */
+  --die: 5px; /* die-cut milk border thickness */
+  --edge: rgba(43, 27, 62, 0.18); /* faint cut edge outside the die line */
+  --wobble-a: 22px 16px 24px 18px / 18px 24px 16px 22px;
+  --wobble-b: 16px 24px 18px 22px / 24px 16px 22px 18px;
+  --wobble-c: 26px 20px 16px 24px / 16px 22px 26px 18px;
+  --pill: 999px 900px 999px 950px / 950px 999px 900px 999px;
+  --font-body:
+    ui-rounded, 'SF Pro Rounded', 'Nunito', 'Quicksand', 'Segoe UI', system-ui,
+    sans-serif;
+  --font-hand:
+    'Marker Felt', 'Chalkboard SE', 'Comic Neue', 'Comic Sans MS',
+    'Segoe Print', ui-rounded, cursive;
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .17 0 0 0 0 .1 0 0 0 0 .24 0 0 0 .1 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --scribble: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='18' viewBox='0 0 240 18'%3E%3Cpath d='M3 11c22-6 41 3 63-1s38-7 60-2 45 4 66-1 31-2 45 1M8 15c30-4 52 1 80-1s60-3 90 0 34 1 52-2' fill='none' stroke='%23f6a8c7' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E");
+
+  --f-border: var(--ink);
+  --f-muted: var(--muted-text);
+  --f-danger: #b4233a;
+  --f-warn: #8a4b00;
+  --f-ok: #1e6b45;
+  --f-focus: var(--focus);
+  --card-background: var(--surface);
+  --button-background: var(--button);
+  --button-color: var(--button-text);
+  --overlay-background: var(--surface);
+  --overlay-color: var(--text);
+
+  color: var(--text);
+  font-family: var(--font-body);
+  background-color: var(--page);
+  background-image:
+    var(--grain), radial-gradient(var(--halftone) 1px, transparent 1.6px);
+  background-size:
+    180px 180px,
+    9px 9px;
+  color-scheme: light;
+  min-height: 100vh;
+}
+
+.forge.sticker.theme-neon-riot {
+  /* ---- Neon Riot palette (bible §5) ------------------------------------- */
+  --milk: #fff9ef;
+  --ink: #1a102a; /* midnight grape */
+  --pink: #ff35b7; /* laser pink */
+  --purple: #7a2bff; /* ultraviolet */
+  --blue: #00e7ff; /* electric cyan */
+  --green: #a8ff00; /* slime green */
+  --yellow: #ffe500; /* acid yellow */
+  --orange: #ff6400; /* signal orange */
+  --red: #ff3e45; /* hot red */
+  --shadow-partner: #2c155b; /* deep indigo */
+
+  --page: var(--ink); /* dark paper = breathing room */
+  --surface: var(--shadow-partner);
+  --surface-alt: #24124a;
+  --text: var(--milk);
+  --muted-text: #d6c6ff;
+  --echo-1: var(--pink);
+  --echo-2: var(--blue);
+  --button: #3b1f78;
+  --button-text: var(--milk);
+  --primary: var(--pink);
+  --primary-text: var(--ink);
+  --selected: var(--yellow);
+  --danger: var(--red);
+  --focus: var(--yellow);
+  --field: #12091f;
+  --halftone: rgba(191, 167, 236, 0.16);
+  --chart-1: var(--blue);
+  --chart-2: var(--pink);
+  --edge: rgba(255, 249, 239, 0.25);
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 .97 0 0 0 0 .94 0 0 0 .07 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  --scribble: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='18' viewBox='0 0 240 18'%3E%3Cpath d='M3 11c22-6 41 3 63-1s38-7 60-2 45 4 66-1 31-2 45 1M8 15c30-4 52 1 80-1s60-3 90 0 34 1 52-2' fill='none' stroke='%23a8ff00' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E");
+
+  --f-danger: #ff8a8f;
+  --f-warn: var(--yellow);
+  --f-ok: var(--green);
+  color-scheme: dark;
+}
+
+/* High contrast keeps the sticker shapes but drops texture and tints. */
+.forge.sticker.high-contrast {
+  --muted-text: var(--text);
+  --halftone: transparent;
+  --grain: none;
+  --page: var(--milk);
+  --surface: #ffffff;
+  --text: #000;
+  --ink: #000;
+}
+.forge.sticker.theme-neon-riot.high-contrast {
+  --page: #000;
+  --surface: #000;
+  --text: #fff;
+  --muted-text: #fff;
+}
+
+/* ---- Die-cut sticker surfaces ------------------------------------------ */
+
+.forge.sticker .card,
+.forge.sticker .forge-status,
+.forge.sticker .forge-dialog,
+.forge.sticker .forge-session-controls {
+  isolation: isolate;
+  background-color: var(--surface);
+  background-image: var(--grain);
+  color: var(--text);
+  border: var(--line) solid var(--ink);
+  border-radius: var(--wobble-a);
+  box-shadow:
+    0 0 0 var(--die) var(--milk),
+    0 0 0 calc(var(--die) + 1.5px) var(--edge),
+    7px 8px 0 calc(var(--die) - 1px) var(--echo-1);
+  margin: calc(var(--die) + 4px);
+  margin-bottom: calc(var(--die) + 18px);
+}
+/* Only cards join the page flow; session overlays stay position: fixed. */
+.forge.sticker .card {
+  position: relative;
+}
+.forge.sticker .card:nth-of-type(3n + 2) {
+  border-radius: var(--wobble-b);
+  box-shadow:
+    0 0 0 var(--die) var(--milk),
+    0 0 0 calc(var(--die) + 1.5px) var(--edge),
+    -6px 8px 0 calc(var(--die) - 1px) var(--echo-2);
+}
+.forge.sticker .card:nth-of-type(3n) {
+  border-radius: var(--wobble-c);
+}
+
+/* Halftone shadow cluster in one corner (printed, not airbrushed). */
+.forge.sticker .card::after,
+.forge.sticker .forge-dialog::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 45%;
+  height: 55%;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: inherit;
+  background-image: radial-gradient(var(--halftone) 1.2px, transparent 1.8px);
+  background-size: 7px 7px;
+  -webkit-mask-image: radial-gradient(
+    circle at 100% 100%,
+    #000 0%,
+    transparent 70%
+  );
+  mask-image: radial-gradient(circle at 100% 100%, #000 0%, transparent 70%);
+}
+
+/* Nested cards (inside a card) are smaller stickers on the sheet. */
+.forge.sticker .card .card {
+  --die: 3px;
+  background-color: var(--surface-alt);
+  box-shadow:
+    0 0 0 var(--die) var(--milk),
+    4px 5px 0 calc(var(--die) - 1px) var(--echo-2);
+}
+
+/* ---- Type: hand-lettered headings with an off-register echo ------------- */
+
+.forge.sticker h1,
+.forge.sticker h2,
+.forge.sticker h3 {
+  font-family: var(--font-hand);
+  color: var(--text);
+  letter-spacing: 0.01em;
+}
+.forge.sticker h1 {
+  font-size: clamp(1.6rem, 4vw, 2.2rem);
+  text-shadow:
+    2px 2px 0 var(--echo-1),
+    -1px -1px 0 var(--echo-2);
+}
+.forge.sticker h2 {
+  text-shadow: 1.5px 1.5px 0 var(--echo-1);
+}
+.forge.sticker .muted,
+.forge.sticker .help,
+.forge.sticker th {
+  color: var(--muted-text);
+}
+
+/* ---- Buttons: puffy pill stickers that press down ---------------------- */
+
+.forge.sticker button,
+.forge.sticker .btn {
+  font-family: var(--font-body);
+  font-weight: 700;
+  background: var(--button);
+  color: var(--button-text);
+  border: var(--line) solid var(--ink);
+  border-radius: var(--pill);
+  box-shadow:
+    0 0 0 3px var(--milk),
+    3px 4px 0 3px var(--ink);
+  margin: 5px;
+  padding: 6px 16px;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease;
+}
+.forge.sticker button:hover:not(:disabled),
+.forge.sticker .btn:hover {
+  filter: none;
+  transform: translate(-1px, -1px) rotate(-1.2deg);
+}
+.forge.sticker button:active:not(:disabled) {
+  transform: translate(2px, 3px);
+  box-shadow:
+    0 0 0 3px var(--milk),
+    1px 1px 0 3px var(--ink);
+}
+.forge.sticker button.primary,
+.forge.sticker .btn.primary {
+  background: var(--primary);
+  color: var(--primary-text);
+}
+.forge.sticker button.danger {
+  background: var(--danger);
+  color: var(--ink);
+}
+.forge.sticker button.small {
+  padding: 2px 10px;
+  box-shadow:
+    0 0 0 2px var(--milk),
+    2px 3px 0 2px var(--ink);
+}
+.forge.sticker button:disabled {
+  opacity: 0.55;
+  box-shadow: 0 0 0 3px var(--milk);
+}
+
+/* Tabs: the selected tab is a butter/acid sticker slapped on slightly askew. */
+.forge.sticker .tabs button[aria-selected='true'],
+.forge.sticker .tabs button[aria-selected='true']:hover {
+  background: var(--selected);
+  color: var(--ink);
+  transform: rotate(-1.5deg);
+}
+
+/* ---- Fields ------------------------------------------------------------ */
+
+.forge.sticker input[type='text'],
+.forge.sticker input[type='number'],
+.forge.sticker input[type='search'],
+.forge.sticker select,
+.forge.sticker textarea {
+  background: var(--field);
+  color: var(--text);
+  border: 2px solid var(--ink);
+  border-radius: var(--wobble-b);
+  box-shadow: 2px 2px 0 0 var(--echo-2);
+}
+.forge.sticker input[type='range'],
+.forge.sticker input[type='checkbox'],
+.forge.sticker input[type='radio'] {
+  accent-color: var(--purple);
+}
+.forge.sticker.theme-neon-riot input[type='range'],
+.forge.sticker.theme-neon-riot input[type='checkbox'],
+.forge.sticker.theme-neon-riot input[type='radio'] {
+  accent-color: var(--pink);
+}
+.forge.sticker *:focus-visible {
+  outline: 3px dashed var(--focus);
+  outline-offset: 4px;
+}
+
+/* ---- Studio frame -------------------------------------------------------- */
+
+.forge.sticker .sidebar {
+  background-color: var(--surface-alt);
+  background-image: var(--grain);
+  border-right: var(--line) dashed var(--ink);
+}
+.forge.sticker .sidebar nav li button {
+  box-shadow: none;
+  margin: 2px 0;
+  background: transparent;
+  color: var(--text);
+  border-color: transparent;
+  font-weight: 600;
+}
+.forge.sticker .sidebar nav li button[aria-current='true'] {
+  background: var(--selected);
+  color: var(--ink);
+  border-color: var(--ink);
+  box-shadow: 2px 3px 0 0 var(--echo-1);
+}
+.forge.sticker .sidebar .section-label {
+  font-family: var(--font-hand);
+  color: var(--muted-text);
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 0.85em;
+}
+.forge.sticker .list button {
+  box-shadow: none;
+  margin: 1px 0;
+  background: transparent;
+  color: var(--text);
+  border-color: transparent;
+}
+.forge.sticker .list button[aria-current='true'] {
+  background: var(--selected);
+  color: var(--ink);
+  border-color: var(--ink);
+}
+
+/* Tables read like ruled zine paper: crayon-dashed rules. */
+.forge.sticker th,
+.forge.sticker td {
+  border-bottom: 1.5px dashed var(--edge);
+}
+.forge.sticker pre,
+.forge.sticker .preview {
+  background: var(--field);
+  color: var(--text);
+  border: 2px solid var(--ink);
+  border-radius: var(--wobble-c);
+}
+.forge.sticker .preview {
+  border-left-width: 6px;
+  border-left-color: var(--echo-1);
+}
+
+/* Small round badge stickers. */
+.forge.sticker .badge {
+  background: var(--surface-alt);
+  color: var(--text);
+  border: 1.5px solid var(--ink);
+  box-shadow: 0 0 0 2px var(--milk);
+  font-weight: 700;
+}
+.forge.sticker .badge.builtin {
+  background: var(--green);
+  color: var(--ink);
+}
+.forge.sticker .badge.override {
+  background: var(--yellow);
+  color: var(--ink);
+}
+.forge.sticker .badge.custom {
+  background: var(--pink);
+  color: var(--ink);
+}
+.forge.sticker .dot {
+  background: var(--pink);
+  box-shadow:
+    0 0 0 2px var(--ink),
+    0 0 0 4px var(--milk);
+}
+.forge.sticker .chart {
+  background-color: var(--field);
+  border: 2px solid var(--ink);
+  border-radius: var(--wobble-a);
+}
+
+/* ---- Crayon Core support marks ------------------------------------------ */
+
+/* Scribbled crayon underline under the page title. */
+.forge.sticker .scribble-under {
+  padding-bottom: 12px;
+  background: var(--scribble) left bottom / min(100%, 240px) 18px no-repeat;
+}
+
+/* A taped margin note: brief, cryptic, decorative (aria-hidden in markup). */
+.forge.sticker .tape-note {
+  display: inline-block;
+  font-family: var(--font-hand);
+  font-size: 0.8rem;
+  color: var(--ink);
+  background: var(--yellow);
+  padding: 2px 10px;
+  border: 1.5px solid var(--ink);
+  transform: rotate(3deg);
+  box-shadow: 0 0 0 2px var(--milk);
+  clip-path: polygon(
+    2% 8%,
+    98% 0,
+    100% 88%,
+    96% 100%,
+    4% 94%,
+    0 14%
+  ); /* torn tape ends */
+  white-space: nowrap;
+}
+.forge .tape-note,
+.forge .sticker-emblem {
+  display: none;
+}
+.forge.sticker .tape-note {
+  display: inline-block;
+}
+.forge.sticker .sticker-emblem {
+  display: block;
+  width: 64px;
+  height: 64px;
+  flex: none;
+}
+
+/* ---- Active session overlays ------------------------------------------- */
+
+.forge.sticker .forge-status {
+  font-size: 0.85em;
+  margin: 0;
+  top: 14px;
+  left: 14px;
+}
+.forge.sticker .forge-status .rec {
+  color: var(--f-danger);
+}
+.forge.sticker .forge-session-controls {
+  margin: 0;
+  bottom: 14px;
+  border-radius: var(--pill);
+  padding: 8px 12px;
+}
+.forge.sticker .forge-dialog {
+  margin: 0 auto;
+}
+
+/* Narration lines are wobbly speech-bubble stickers. */
+.forge.sticker .forge-lines {
+  top: 14px;
+  right: 14px;
+  gap: 14px;
+}
+.forge.sticker .forge-lines .line {
+  background: var(--surface);
+  color: var(--text);
+  border: var(--line) solid var(--ink);
+  border-radius: var(--wobble-a);
+  box-shadow:
+    0 0 0 4px var(--milk),
+    5px 6px 0 3px var(--echo-1);
+  font-weight: 600;
+}
+.forge.sticker .forge-lines .line:nth-child(even) {
+  border-radius: var(--wobble-b);
+  box-shadow:
+    0 0 0 4px var(--milk),
+    -5px 6px 0 3px var(--echo-2);
+}
+.forge.sticker .forge-lines .line.narration {
+  font-family: var(--font-hand);
+  font-style: normal;
+}
+
+/* Hypno words: chunky die-cut lettering with a flat misregistered echo. */
+.forge.sticker .forge-hypno {
+  font-family: var(--font-hand);
+  color: var(--milk);
+  -webkit-text-stroke: 2px var(--ink);
+  paint-order: stroke fill;
+  text-shadow:
+    4px 4px 0 var(--echo-1),
+    -3px -2px 0 var(--echo-2);
+}
+
+/* Slight hand-placed tilt, only when motion is welcome. */
+@media (prefers-reduced-motion: no-preference) {
+  .forge.sticker:not(.reduced-motion) .forge-lines .line:nth-child(odd) {
+    transform: rotate(-0.8deg);
+  }
+  .forge.sticker:not(.reduced-motion) .forge-lines .line:nth-child(even) {
+    transform: rotate(0.9deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .forge.sticker button:hover:not(:disabled),
+  .forge.sticker .tabs button[aria-selected='true'] {
+    transform: none;
+  }
+}
+.forge.sticker.reduced-motion button:hover:not(:disabled),
+.forge.sticker.reduced-motion .tabs button[aria-selected='true'] {
+  transform: none;
+}

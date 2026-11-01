@@ -22,6 +22,7 @@ import { activeSession } from './activeSession';
 import { ForgeConfigProvider } from './ConfigContext';
 import { rootClass, rootStyle, useForgeConfig } from './forgeConfigState';
 import './forge.css';
+import './theme-sticker.css';
 
 function PromptDialog({ rt, view }: { rt: SessionRuntime; view: RuntimeView }) {
   const p = view.prompt!;

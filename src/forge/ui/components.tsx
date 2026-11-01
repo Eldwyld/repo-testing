@@ -764,7 +764,7 @@ export function StepChart({
             key={s.name}
             d={path(s.points)}
             fill='none'
-            stroke={s.color}
+            style={{ stroke: s.color }}
             strokeWidth={2}
           />
         ))}

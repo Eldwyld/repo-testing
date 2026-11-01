@@ -111,6 +111,9 @@ validation errors listed. "Import classic settings" reads the original app's `lo
 
 ## Accessibility
 
+The visual theme follows the Sticker World style bible (Pastel Cloud by default, plus Neon Riot and the original Midnight); see [J-sticker-theme.md](J-sticker-theme.md).
+
+
 Every control is a labelled native element, and tables use header cells. Focus is visible (`:focus-visible`).
 Narration and validation feedback use `aria-live`/`role=status`. Touch targets in the session toolbar are at
 least 44 px, and the layout is responsive (the sidebar collapses under 800 px). The reduced-motion option

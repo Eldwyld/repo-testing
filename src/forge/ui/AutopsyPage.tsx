@@ -34,6 +34,8 @@ import { download } from './files';
 import { ForgeConfigProvider } from './ConfigContext';
 import { rootClass, rootStyle, useForgeConfig } from './forgeConfigState';
 import './forge.css';
+import './theme-sticker.css';
+import { StickerEmblem } from './StickerEmblem';
 
 const ANNOTATABLE: SessionEventType[] = [
   'check_answered',
@@ -620,7 +622,8 @@ function Autopsy() {
   return (
     <div className='main'>
       <div className='topbar'>
-        <h1>Session autopsy</h1>
+        <StickerEmblem />
+        <h1 className='scribble-under'>Session autopsy</h1>
         <span className='spacer' />
         <Link className='btn' to='/forge'>
           Studio
@@ -714,7 +717,7 @@ function Autopsy() {
           series={[
             {
               name: 'Intensity',
-              color: '#c678dd',
+              color: 'var(--chart-1, #c678dd)',
               points: intensityCurve(record.events),
             },
           ]}
@@ -725,7 +728,7 @@ function Autopsy() {
           series={[
             {
               name: 'Pace',
-              color: '#61afef',
+              color: 'var(--chart-2, #61afef)',
               points: paceCurve(record.events),
             },
           ]}

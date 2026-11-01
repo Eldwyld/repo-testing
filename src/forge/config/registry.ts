@@ -544,12 +544,22 @@ const BUILTIN_CATEGORIES: CategoryDef[] = [
   },
   {
     id: 'accessibility',
-    label: 'Accessibility',
+    label: 'Appearance & accessibility',
     section: 'safety',
     path: 'accessibility',
     editor: 'accessibilityEditor',
-    description: 'Reduced motion, text size, contrast and reading time.',
-    keywords: ['motion', 'font', 'contrast', 'a11y', 'reading'],
+    description: 'Theme, reduced motion, text size, contrast and reading time.',
+    keywords: [
+      'theme',
+      'sticker',
+      'appearance',
+      'colors',
+      'motion',
+      'font',
+      'contrast',
+      'a11y',
+      'reading',
+    ],
   },
 ];
 

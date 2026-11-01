@@ -57,6 +57,30 @@ describe('config schema', () => {
   });
 });
 
+describe('appearance', () => {
+  it('defaults to the Pastel Cloud sticker theme and fills it into older configs', () => {
+    expect(defaultConfig().accessibility.theme).toBe('pastel-cloud');
+    const old = JSON.parse(exportConfig(defaultConfig()));
+    delete old.accessibility.theme;
+    const r = validateConfig(old);
+    expect(r.ok && r.value.accessibility.theme).toBe('pastel-cloud');
+  });
+  it('accepts every palette mode and rejects unknown themes', () => {
+    for (const theme of ['pastel-cloud', 'neon-riot', 'midnight'])
+      expect(
+        validateConfig(setPath(defaultConfig(), 'accessibility.theme', theme))
+          .ok
+      ).toBe(true);
+    expect(
+      validateConfig(setPath(defaultConfig(), 'accessibility.theme', 'glossy'))
+        .ok
+    ).toBe(false);
+  });
+  it('theme is searchable', () => {
+    expect(searchSettings('sticker')[0].categoryId).toBe('accessibility');
+  });
+});
+
 describe('category registry', () => {
   it('covers every requested settings section', () => {
     const sections = new Set(categories().map(c => c.section));

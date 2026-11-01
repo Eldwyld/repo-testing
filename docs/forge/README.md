@@ -16,6 +16,7 @@ and full session logging and replay. Everything is local-first: there is no serv
 | G. Session logging and replay demonstration | [G-logging-replay-demo.md](G-logging-replay-demo.md) |
 | H. Testing strategy | [H-testing.md](H-testing.md) |
 | I. Delivery checklist | [I-delivery-checklist.md](I-delivery-checklist.md) |
+| J. Sticker World UI theme | [J-sticker-theme.md](J-sticker-theme.md) |
 
 ## Quick start
 
@@ -58,6 +59,7 @@ Each increment was committed separately. Each was type-checked and tested before
 | 4 | prompts, checks, accounting, session log/analysis/replay/export, config, storage, runtime | `prompts`, `checks`, `accounting`, `session/*`, `config/*`, `storage`, `runtime/*`, `tests/forge/config.test.ts`, `runtime.test.ts` | Everything after the engine, plus the `SessionRuntime` safety contract |
 | 5 | game-engine bridge, Studio UI, session page, autopsy UI; petplay removal | `src/game/plugins/forge.ts`, `src/forge/ui/*`, `src/app/App.tsx`, classic terminology files | Integration with the upstream engine, all screens, routes, classic cleanup |
 | 6 | docs, SceneBridge fix, browser smoke test | `docs/forge/*`, `src/game/SceneBridge.tsx`, `e2e/forge-smoke.cjs` | Documentation and end-to-end verification |
+| 7 | Sticker World theme (Pastel Cloud / Neon Riot) | `src/forge/ui/theme-sticker.css`, `StickerEmblem.tsx`, `accessibility.theme` | UI restyled to the Sticker Style Bible |
 
 The status of every feature (Complete / Partial / Planned) is in the [delivery checklist](I-delivery-checklist.md).
 

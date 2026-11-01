@@ -31,6 +31,8 @@ export function rootClass(config: ForgeConfig) {
   const a = config.accessibility;
   return [
     'forge',
+    `theme-${a.theme}`,
+    a.theme === 'midnight' ? '' : 'sticker',
     a.highContrast ? 'high-contrast' : '',
     a.reducedMotion === 'on' ? 'reduced-motion' : '',
   ].join(' ');
